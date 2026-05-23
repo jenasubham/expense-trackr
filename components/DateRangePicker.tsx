@@ -113,6 +113,9 @@ export default function DateRangePicker({
     currentMonth === 0 ? 11 : currentMonth - 1
   );
 
+  const today = new Date();
+  const todayDateStr = formatDateString(today.getFullYear(), today.getMonth(), today.getDate());
+
   // Helper to format a YYYY-MM-DD string into "Month DD, YYYY"
   const formatReadable = (dateStr: string) => {
     if (!dateStr) return '';
@@ -223,9 +226,11 @@ export default function DateRangePicker({
             const isStart = fromDate === dayDateStr;
             const isEnd = toDate === dayDateStr;
             const isBetween = fromDate && toDate && dayDateStr > fromDate && dayDateStr < toDate;
+            const isSelected = isStart || isEnd;
+            const isToday = dayDateStr === todayDateStr;
 
             let dayStyle = 'text-[#e2e2e2] hover:bg-[#333535] rounded-lg';
-            if (isStart || isEnd) {
+            if (isSelected) {
               dayStyle = 'bg-[#a1d800] text-[#141f00] font-bold rounded-lg shadow-[0_2px_8px_rgba(161,216,0,0.4)]';
             } else if (isBetween) {
               dayStyle = 'bg-[#a1d800]/15 text-[#a1d800] font-semibold rounded-md';
@@ -236,9 +241,14 @@ export default function DateRangePicker({
                 key={dayNum}
                 type="button"
                 onClick={() => handleSelectDay(dayNum)}
-                className={`py-1.5 w-full flex items-center justify-center text-[13px] font-semibold font-[family-name:var(--font-inter)] transition-all cursor-pointer ${dayStyle}`}
+                className={`relative py-1.5 w-full flex items-center justify-center text-[13px] font-semibold font-[family-name:var(--font-inter)] transition-all cursor-pointer ${dayStyle}`}
               >
-                {dayNum}
+                {isToday && !isSelected && (
+                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                    <div className="w-6 h-6 rounded-full border border-[#a1d800]/60 shadow-[0_0_8px_rgba(161,216,0,0.15)]"></div>
+                  </div>
+                )}
+                <span className="relative z-10">{dayNum}</span>
               </button>
             );
           })}

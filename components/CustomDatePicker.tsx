@@ -69,10 +69,20 @@ export default function CustomDatePicker({ date, onChange }: CustomDatePickerPro
   const daysInMonth = getDaysInMonth(currentYear, currentMonth);
   const firstDay = getFirstDayOfMonth(currentYear, currentMonth);
   
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   // Previous month days for padding
   const daysInPrevMonth = getDaysInMonth(currentMonth === 0 ? currentYear - 1 : currentYear, currentMonth === 0 ? 11 : currentMonth - 1);
 
   const displayDate = selectedDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+
+  const today = new Date();
+  const todayDateStr = mounted
+    ? `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
+    : '';
 
   return (
     <div className="relative w-full" ref={containerRef}>
@@ -133,19 +143,27 @@ export default function CustomDatePicker({ date, onChange }: CustomDatePickerPro
                 selectedDate.getDate() === dayNum && 
                 selectedDate.getMonth() === currentMonth && 
                 selectedDate.getFullYear() === currentYear;
+              
+              const dayDateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(dayNum).padStart(2, '0')}`;
+              const isToday = dayDateStr === todayDateStr;
                 
               return (
                 <button
                   key={dayNum}
                   type="button"
                   onClick={() => handleSelectDate(dayNum)}
-                  className={`py-1.5 w-full flex items-center justify-center rounded-lg text-[13px] font-bold font-[family-name:var(--font-inter)] transition-colors ${
+                  className={`relative py-1.5 w-full flex items-center justify-center rounded-lg text-[13px] font-bold font-[family-name:var(--font-inter)] transition-colors ${
                     isSelected 
-                      ? 'bg-[#2C2C2E] text-[#ffffff]' 
+                      ? 'bg-[#a1d800] text-[#141f00] font-bold rounded-lg shadow-[0_2px_8px_rgba(161,216,0,0.4)]' 
                       : 'text-[#e2e2e2] hover:bg-[#333535]'
                   }`}
                 >
-                  {dayNum}
+                  {isToday && !isSelected && (
+                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                      <div className="w-6 h-6 rounded-full border border-[#a1d800]/60 shadow-[0_0_8px_rgba(161,216,0,0.2)]"></div>
+                    </div>
+                  )}
+                  <span className="relative z-10">{dayNum}</span>
                 </button>
               );
             })}

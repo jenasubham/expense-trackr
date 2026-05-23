@@ -7,7 +7,7 @@ export const CATEGORIES: Category[] = [
   'Food & Dining',
   'Transport',
   'Health',
-  'Shopping',
+  'Online Order',
   'Entertainment',
   'Groceries',
   'Travel',

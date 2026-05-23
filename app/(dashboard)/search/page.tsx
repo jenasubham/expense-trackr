@@ -15,7 +15,7 @@ const getCategoryIcon = (category: string) => {
     'Food & Dining': 'restaurant',
     'Transport': 'directions_car',
     'Health': 'medical_services',
-    'Shopping': 'shopping_bag',
+    'Online Order': 'shopping_bag',
     'Entertainment': 'movie',
     'Groceries': 'local_grocery_store',
     'Travel': 'flight',
