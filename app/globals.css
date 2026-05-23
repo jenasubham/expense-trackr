@@ -1,8 +1,8 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #0D0D0D;
+  --foreground: #e2e2e2;
 }
 
 @theme inline {
@@ -10,17 +10,68 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --font-inter: var(--font-inter);
+  --font-geist: var(--font-geist-sans);
+  --animate-slide-up: slide-up 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  --animate-fade-in: fade-in 0.3s ease-out forwards;
+  --animate-fade-in-down: fade-in-down 0.3s ease-out forwards;
+  --animate-slide-in-right: slide-in-right 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+@keyframes slide-in-right {
+  0% { transform: translateX(50px); opacity: 0; }
+  100% { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes slide-up {
+  0% { transform: translateY(100%); }
+  100% { transform: translateY(0); }
+}
+
+@keyframes fade-in {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+@keyframes fade-in-down {
+  0% { opacity: 0; transform: translate(-50%, -20px); }
+  100% { opacity: 1; transform: translate(-50%, 0); }
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  -webkit-font-smoothing: antialiased;
 }
+
+/* Remove focus outline on recharts elements */
+.recharts-wrapper, 
+.recharts-wrapper *, 
+.recharts-surface, 
+.recharts-surface *, 
+.recharts-cartesian-axis, 
+.recharts-bar-rectangle, 
+.recharts-layer,
+svg,
+svg *,
+svg:focus,
+svg *:focus,
+.recharts-wrapper:focus,
+.recharts-wrapper *:focus {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+@keyframes glow-pulse {
+  0%, 100% {
+    box-shadow: 0 0 35px rgba(161, 216, 0, 0.35), inset 0 0 15px rgba(161, 216, 0, 0.1);
+  }
+  50% {
+    box-shadow: 0 0 60px rgba(161, 216, 0, 0.65), inset 0 0 25px rgba(161, 216, 0, 0.25);
+  }
+}
+
+.animate-glow-pulse {
+  animation: glow-pulse 3s infinite ease-in-out;
+}
+
