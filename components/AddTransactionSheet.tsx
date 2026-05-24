@@ -138,7 +138,7 @@ export default function AddTransactionSheet({ isOpen, onClose, onSuccess }: AddT
             <h1 className="font-bold text-[24px] text-[#ffffff] font-[family-name:var(--font-geist-sans)] tracking-tight">Add Transaction</h1>
             <button 
               onClick={onClose}
-              className="w-8 h-8 flex items-center justify-center text-[#c3caac] hover:bg-[#1a1c1c] rounded-full transition-colors"
+              className="w-8 h-8 flex items-center justify-center text-[#c3caac] hover:bg-[#1a1c1c] rounded-full transition-colors cursor-pointer"
             >
               <span className="material-symbols-outlined">close</span>
             </button>
@@ -156,7 +156,7 @@ export default function AddTransactionSheet({ isOpen, onClose, onSuccess }: AddT
                 <button
                   key={t}
                   onClick={() => setType(t)}
-                  className={`flex-1 py-2 text-center rounded-lg text-[12px] leading-[16px] tracking-[0.05em] font-bold uppercase transition-colors font-[family-name:var(--font-geist-sans)] ${
+                  className={`flex-1 py-2 text-center rounded-lg text-[12px] leading-[16px] tracking-[0.05em] font-bold uppercase transition-colors font-[family-name:var(--font-geist-sans)] cursor-pointer ${
                     type === t ? 'bg-[#434933] text-[#ffffff]' : 'text-[#8d9479]'
                   }`}
                 >
@@ -341,7 +341,7 @@ export default function AddTransactionSheet({ isOpen, onClose, onSuccess }: AddT
           <button 
             onClick={handleSubmit}
             disabled={loading}
-            className="w-full bg-[#a1d800] hover:bg-[#b8f600] text-[#141f00] font-bold text-[20px] leading-[28px] tracking-tight py-4 rounded-full shadow-[0_4px_20px_rgb(161,216,0,0.2)] transition-all active:scale-95 flex items-center justify-center font-[family-name:var(--font-geist-sans)] disabled:opacity-70 disabled:cursor-not-allowed"
+            className="w-full bg-[#a1d800] hover:bg-[#b8f600] text-[#141f00] font-bold text-[20px] leading-[28px] tracking-tight py-4 rounded-full shadow-[0_4px_20px_rgb(161,216,0,0.2)] transition-all active:scale-95 flex items-center justify-center font-[family-name:var(--font-geist-sans)] disabled:opacity-70 disabled:cursor-not-allowed cursor-pointer"
           >
             {loading ? (
               <svg className="animate-spin h-6 w-6 text-[#141f00]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">

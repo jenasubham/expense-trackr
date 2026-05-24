@@ -89,7 +89,7 @@ export default function CustomDatePicker({ date, onChange }: CustomDatePickerPro
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className={`w-full bg-[#1a1c1c] border ${isOpen ? 'border-[#a1d800]' : 'border-[#434933]'} rounded-xl py-3 px-4 text-left text-[14px] text-[#ffffff] outline-none font-[family-name:var(--font-inter)] flex justify-between items-center transition-colors`}
+        className={`w-full bg-[#1a1c1c] border ${isOpen ? 'border-[#a1d800]' : 'border-[#434933]'} rounded-xl py-3 px-4 text-left text-[14px] text-[#ffffff] outline-none font-[family-name:var(--font-inter)] flex justify-between items-center transition-colors cursor-pointer`}
       >
         <span>{displayDate}</span>
         <span className="material-symbols-outlined text-[#c3caac] text-[20px]">event</span>
@@ -102,7 +102,7 @@ export default function CustomDatePicker({ date, onChange }: CustomDatePickerPro
             <button 
               onClick={handlePrevMonth} 
               type="button"
-              className="w-8 h-8 flex items-center justify-center text-[#c3caac] hover:bg-[#2C2C2E] rounded-full transition-colors"
+              className="w-8 h-8 flex items-center justify-center text-[#c3caac] hover:bg-[#2C2C2E] rounded-full transition-colors cursor-pointer"
             >
               <span className="material-symbols-outlined text-[18px]">chevron_left</span>
             </button>
@@ -112,7 +112,7 @@ export default function CustomDatePicker({ date, onChange }: CustomDatePickerPro
             <button 
               onClick={handleNextMonth} 
               type="button"
-              className="w-8 h-8 flex items-center justify-center text-[#c3caac] hover:bg-[#2C2C2E] rounded-full transition-colors"
+              className="w-8 h-8 flex items-center justify-center text-[#c3caac] hover:bg-[#2C2C2E] rounded-full transition-colors cursor-pointer"
             >
               <span className="material-symbols-outlined text-[18px]">chevron_right</span>
             </button>
@@ -152,7 +152,7 @@ export default function CustomDatePicker({ date, onChange }: CustomDatePickerPro
                   key={dayNum}
                   type="button"
                   onClick={() => handleSelectDate(dayNum)}
-                  className={`relative py-1.5 w-full flex items-center justify-center rounded-lg text-[13px] font-bold font-[family-name:var(--font-inter)] transition-colors ${
+                  className={`relative py-1.5 w-full flex items-center justify-center rounded-lg text-[13px] font-bold font-[family-name:var(--font-inter)] transition-colors cursor-pointer ${
                     isSelected 
                       ? 'bg-[#a1d800] text-[#141f00] font-bold rounded-lg shadow-[0_2px_8px_rgba(161,216,0,0.4)]' 
                       : 'text-[#e2e2e2] hover:bg-[#333535]'

@@ -17,7 +17,7 @@ export default function BottomNav() {
       {navItems.map((item) => {
         const isActive = pathname === item.path;
         return (
-          <Link key={item.name} href={item.path} className="flex flex-col items-center justify-center group w-16">
+          <Link key={item.name} href={item.path} className="flex flex-col items-center justify-center group w-16 cursor-pointer">
             {isActive ? (
               <div className="flex flex-col items-center justify-center text-[#a1d800] rounded-full px-4 py-1 transition-all duration-200">
                 <span className="material-symbols-outlined text-[28px]" style={{ fontVariationSettings: "'FILL' 1" }}>{item.icon}</span>

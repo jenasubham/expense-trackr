@@ -126,7 +126,7 @@ export default function Dashboard() {
             Hello, Subham
           </h1>
         </div>
-        <Link href="/search" className="w-12 h-12 flex items-center justify-center rounded-full bg-[#1A1A1A] border border-[#2C2C2E] hover:border-[#a1d800] transition-colors">
+        <Link href="/search" className="w-12 h-12 flex items-center justify-center rounded-full bg-[#1A1A1A] border border-[#2C2C2E] hover:border-[#a1d800] transition-colors cursor-pointer">
           <span className="material-symbols-outlined text-[#a1d800]">search</span>
         </Link>
       </header>
@@ -172,7 +172,7 @@ export default function Dashboard() {
         <h2 className="font-semibold text-[20px] text-[#ffffff] font-[family-name:var(--font-geist-sans)] tracking-tight">
           Recent Transactions
         </h2>
-        <Link href="/search" className="text-[12px] tracking-[0.05em] font-semibold text-[#a1d800] uppercase hover:underline font-[family-name:var(--font-geist-sans)] pb-0.5">
+        <Link href="/search" className="text-[12px] tracking-[0.05em] font-semibold text-[#a1d800] uppercase hover:underline font-[family-name:var(--font-geist-sans)] pb-0.5 cursor-pointer">
           VIEW ALL
         </Link>
       </div>
@@ -267,7 +267,7 @@ export default function Dashboard() {
       <div className="fixed bottom-[96px] right-[24px] z-40">
         <button 
           onClick={() => setIsSheetOpen(true)}
-          className="w-14 h-14 bg-[#a1d800] text-[#263500] rounded-full shadow-[0_8px_30px_rgb(161,216,0,0.3)] flex items-center justify-center active:scale-95 transition-all duration-200 hover:scale-105"
+          className="w-14 h-14 bg-[#a1d800] text-[#263500] rounded-full shadow-[0_8px_30px_rgb(161,216,0,0.3)] flex items-center justify-center active:scale-95 transition-all duration-200 hover:scale-105 cursor-pointer"
         >
           <span className="material-symbols-outlined text-[32px] font-bold">add</span>
         </button>

@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { updatePassword, signOut } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 import { useAuth } from '@/lib/context/AuthContext';
+import { Eye, EyeOff } from 'lucide-react';
 
 export default function ProfilePage() {
   const { user } = useAuth();
@@ -15,6 +16,8 @@ export default function ProfilePage() {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
@@ -53,6 +56,8 @@ export default function ProfilePage() {
       setIsChangingPassword(false);
       setNewPassword('');
       setConfirmPassword('');
+      setShowNewPassword(false);
+      setShowConfirmPassword(false);
     } catch (error: any) {
       console.error(error);
       if (error.code === 'auth/requires-recent-login') {
@@ -82,7 +87,7 @@ export default function ProfilePage() {
           Profile
         </h1>
         <div className="flex items-center gap-3">
-          <Link href="/search" className="w-10 h-10 flex items-center justify-center text-[#c3caac] hover:text-[#a1d800] transition-colors">
+          <Link href="/search" className="w-10 h-10 flex items-center justify-center text-[#c3caac] hover:text-[#a1d800] transition-colors cursor-pointer">
             <span className="material-symbols-outlined text-[24px]">search</span>
           </Link>
           <div className="w-8 h-8 rounded-full overflow-hidden border border-[#434933] bg-[#1A1A1A] flex items-center justify-center">
@@ -110,8 +115,12 @@ export default function ProfilePage() {
         {/* Change Password Card */}
         <div className="bg-[#1a1c1c] border border-[#2C2C2E] rounded-xl overflow-hidden transition-all duration-300">
           <button 
-            onClick={() => setIsChangingPassword(!isChangingPassword)}
-            className="w-full flex items-center justify-between p-4 hover:bg-[#252828] transition-colors"
+            onClick={() => {
+              setIsChangingPassword(!isChangingPassword);
+              setShowNewPassword(false);
+              setShowConfirmPassword(false);
+            }}
+            className="w-full flex items-center justify-between p-4 hover:bg-[#252828] transition-colors cursor-pointer"
           >
             <div className="flex items-center gap-4">
               <div className="w-10 h-10 rounded-full bg-[#333535] flex items-center justify-center text-[#e2e2e2]">
@@ -130,24 +139,43 @@ export default function ProfilePage() {
           {isChangingPassword && (
             <div className="px-4 pb-4 pt-2 border-t border-[#333535]/50 animate-fade-in">
               <div className="flex flex-col gap-3">
-                <input 
-                  type="password" 
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  placeholder="New Password" 
-                  className="w-full bg-[#121414] border border-[#434933] focus:border-[#a1d800] focus:ring-0 text-[#ffffff] font-[family-name:var(--font-inter)] text-[14px] rounded-lg px-4 py-3 outline-none placeholder:text-[#474646]"
-                />
-                <input 
-                  type="password" 
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  placeholder="Confirm New Password" 
-                  className="w-full bg-[#121414] border border-[#434933] focus:border-[#a1d800] focus:ring-0 text-[#ffffff] font-[family-name:var(--font-inter)] text-[14px] rounded-lg px-4 py-3 outline-none placeholder:text-[#474646]"
-                />
+                <div className="relative">
+                  <input 
+                    type={showNewPassword ? "text" : "password"} 
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    placeholder="New Password" 
+                    className="w-full bg-[#121414] border border-[#434933] focus:border-[#a1d800] focus:ring-0 text-[#ffffff] font-[family-name:var(--font-inter)] text-[14px] rounded-lg pl-4 pr-12 py-3 outline-none placeholder:text-[#474646]"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowNewPassword(!showNewPassword)}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-[#8d9479] hover:text-[#a1d800] transition-colors cursor-pointer flex items-center justify-center"
+                  >
+                    {showNewPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
+                
+                <div className="relative">
+                  <input 
+                    type={showConfirmPassword ? "text" : "password"} 
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    placeholder="Confirm New Password" 
+                    className="w-full bg-[#121414] border border-[#434933] focus:border-[#a1d800] focus:ring-0 text-[#ffffff] font-[family-name:var(--font-inter)] text-[14px] rounded-lg pl-4 pr-12 py-3 outline-none placeholder:text-[#474646]"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-[#8d9479] hover:text-[#a1d800] transition-colors cursor-pointer flex items-center justify-center"
+                  >
+                    {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
                 <button 
                   onClick={handleChangePassword}
                   disabled={loading}
-                  className="w-full mt-2 bg-[#a1d800] hover:bg-[#b8f600] text-[#141f00] font-bold text-[14px] py-3 rounded-lg transition-colors flex items-center justify-center font-[family-name:var(--font-geist-sans)] disabled:opacity-70 disabled:cursor-not-allowed"
+                  className="w-full mt-2 bg-[#a1d800] hover:bg-[#b8f600] text-[#141f00] font-bold text-[14px] py-3 rounded-lg transition-colors flex items-center justify-center font-[family-name:var(--font-geist-sans)] disabled:opacity-70 disabled:cursor-not-allowed cursor-pointer"
                 >
                   {loading ? (
                     <svg className="animate-spin h-5 w-5 text-[#141f00]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -167,7 +195,7 @@ export default function ProfilePage() {
         {/* Logout Button */}
         <button 
           onClick={handleLogout}
-          className="w-full flex items-center justify-center gap-2 py-4 bg-transparent border border-[#ffb4ab]/30 hover:bg-[#ffb4ab]/5 rounded-xl transition-colors mt-auto"
+          className="w-full flex items-center justify-center gap-2 py-4 bg-transparent border border-[#ffb4ab]/30 hover:bg-[#ffb4ab]/5 rounded-xl transition-colors mt-auto cursor-pointer"
         >
           <span className="material-symbols-outlined text-[#ffb4ab] text-[20px]">logout</span>
           <span className="font-bold text-[16px] text-[#ffb4ab] font-[family-name:var(--font-geist-sans)] tracking-wide">

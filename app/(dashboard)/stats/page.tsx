@@ -209,7 +209,7 @@ export default function StatsPage() {
             Analytics
           </h1>
         </div>
-        <Link href="/search" className="w-12 h-12 flex items-center justify-center rounded-full bg-[#1A1A1A] border border-[#2C2C2E] hover:border-[#a1d800] transition-colors">
+        <Link href="/search" className="w-12 h-12 flex items-center justify-center rounded-full bg-[#1A1A1A] border border-[#2C2C2E] hover:border-[#a1d800] transition-colors cursor-pointer">
           <span className="material-symbols-outlined text-[#a1d800]">search</span>
         </Link>
       </header>
@@ -220,7 +220,7 @@ export default function StatsPage() {
           <button
             key={tab}
             onClick={() => setActiveTab(tab as TabType)}
-            className={`flex-1 py-2 text-center rounded-lg text-[12px] leading-[16px] tracking-[0.05em] font-bold uppercase transition-colors font-[family-name:var(--font-geist-sans)] ${
+            className={`flex-1 py-2 text-center rounded-lg text-[12px] leading-[16px] tracking-[0.05em] font-bold uppercase transition-colors font-[family-name:var(--font-geist-sans)] cursor-pointer ${
               activeTab === tab ? 'bg-[#a1d800] text-[#141f00]' : 'text-[#c3caac]'
             }`}
           >

@@ -2,9 +2,10 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
+import { signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, sendPasswordResetEmail } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 import { useAuth } from '@/lib/context/AuthContext';
+import { Eye, EyeOff } from 'lucide-react';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -14,6 +15,15 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+  
+  // Forgot Password Modal states
+  const [isForgotPassword, setIsForgotPassword] = useState(false);
+  const [resetSuccess, setResetSuccess] = useState(false);
+  const [resetError, setResetError] = useState('');
+  const [resetEmailError, setResetEmailError] = useState('');
+  const [resetLoading, setResetLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
 
@@ -84,6 +94,39 @@ export default function LoginPage() {
     }
   };
 
+  const handleSendResetLink = async () => {
+    setResetSuccess(false);
+    setResetError('');
+    setResetEmailError('');
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!email) {
+      setResetEmailError('Please enter a valid email');
+      return;
+    }
+    if (!emailRegex.test(email)) {
+      setResetEmailError('Please enter a valid email');
+      return;
+    }
+
+    setResetLoading(true);
+    try {
+      await sendPasswordResetEmail(auth, email);
+      setResetSuccess(true);
+    } catch (err: any) {
+      console.error(err);
+      if (err.code === 'auth/user-not-found') {
+        setResetError('Email address not found.');
+      } else if (err.code === 'auth/invalid-email') {
+        setResetEmailError('Please enter a valid email.');
+      } else {
+        setResetError('Failed to send reset link. Please try again.');
+      }
+    } finally {
+      setResetLoading(false);
+    }
+  };
+
   return (
     <main className="min-h-screen flex flex-col items-center px-[24px] pt-[80px] max-w-[400px] mx-auto relative z-10 w-full bg-[#121414]">
       {/* Top Wallet Icon */}
@@ -131,23 +174,40 @@ export default function LoginPage() {
           <label className="text-[11px] leading-[16px] tracking-[0.05em] font-bold text-[#c3caac] uppercase font-[family-name:var(--font-geist-sans)]">
             Password
           </label>
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => {
-              setPassword(e.target.value);
-              if (passwordError && e.target.value) setPasswordError('');
-            }}
-            onBlur={handlePasswordBlur}
-            className={`w-full bg-[#1a1c1c] border ${passwordError ? 'border-red-500 focus:border-red-500' : 'border-[#333535] focus:border-[#a1d800]'} rounded-xl px-4 py-[14px] text-[#ffffff] text-[15px] placeholder:text-[#474746] transition-colors duration-200 outline-none font-[family-name:var(--font-inter)]`}
-            placeholder="••••••••"
-          />
+          <div className="relative">
+            <input
+              type={showPassword ? "text" : "password"}
+              value={password}
+              onChange={(e) => {
+                setPassword(e.target.value);
+                if (passwordError && e.target.value) setPasswordError('');
+              }}
+              onBlur={handlePasswordBlur}
+              className={`w-full bg-[#1a1c1c] border ${passwordError ? 'border-red-500 focus:border-red-500' : 'border-[#333535] focus:border-[#a1d800]'} rounded-xl pl-4 pr-12 py-[14px] text-[#ffffff] text-[15px] placeholder:text-[#474746] transition-colors duration-200 outline-none font-[family-name:var(--font-inter)]`}
+              placeholder="••••••••"
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-4 top-1/2 -translate-y-1/2 text-[#8d9479] hover:text-[#b8f600] transition-colors cursor-pointer flex items-center justify-center"
+            >
+              {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+            </button>
+          </div>
           {passwordError && <span className="text-red-500 text-[12px] font-medium font-[family-name:var(--font-inter)]">{passwordError}</span>}
         </div>
 
         {/* Forgot Password */}
         <div className="flex justify-end mt-1">
-          <button className="text-[13px] leading-[16px] tracking-tight font-bold text-[#b8f600] font-[family-name:var(--font-geist-sans)] hover:underline">
+          <button
+            onClick={() => {
+              setIsForgotPassword(true);
+              setResetSuccess(false);
+              setResetError('');
+              setResetEmailError('');
+            }}
+            className="text-[13px] leading-[16px] tracking-tight font-bold text-[#b8f600] font-[family-name:var(--font-geist-sans)] hover:underline cursor-pointer"
+          >
             Forgot Password?
           </button>
         </div>
@@ -164,7 +224,7 @@ export default function LoginPage() {
           <button
             onClick={handleLogin}
             disabled={!isFormValid || loading || authLoading || googleLoading}
-            className="w-full bg-[#b8f600] text-[#141f00] py-[14px] rounded-full text-[16px] font-bold font-[family-name:var(--font-geist-sans)] tracking-[-0.01em] active:scale-[0.98] transition-all duration-150 flex justify-center items-center disabled:opacity-50 disabled:bg-[#434933] disabled:text-[#8d9479] disabled:cursor-not-allowed"
+            className="w-full bg-[#b8f600] text-[#141f00] py-[14px] rounded-full text-[16px] font-bold font-[family-name:var(--font-geist-sans)] tracking-[-0.01em] active:scale-[0.98] transition-all duration-150 flex justify-center items-center disabled:opacity-50 disabled:bg-[#434933] disabled:text-[#8d9479] disabled:cursor-not-allowed cursor-pointer"
           >
             {loading ? (
               <svg className="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -187,7 +247,7 @@ export default function LoginPage() {
           <button
             onClick={handleGoogleLogin}
             disabled={loading || authLoading || googleLoading}
-            className="w-full bg-[#1a1c1c] border border-[#333535] hover:bg-[#252828] text-[#ffffff] py-[14px] rounded-full text-[15px] font-bold font-[family-name:var(--font-geist-sans)] tracking-[-0.01em] active:scale-[0.98] transition-all duration-150 flex justify-center items-center gap-3 disabled:opacity-70 disabled:cursor-not-allowed"
+            className="w-full bg-[#1a1c1c] border border-[#333535] hover:bg-[#252828] text-[#ffffff] py-[14px] rounded-full text-[15px] font-bold font-[family-name:var(--font-geist-sans)] tracking-[-0.01em] active:scale-[0.98] transition-all duration-150 flex justify-center items-center gap-3 disabled:opacity-70 disabled:cursor-not-allowed cursor-pointer"
           >
             {googleLoading ? (
               <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -208,6 +268,100 @@ export default function LoginPage() {
           </button>
         </div>
       </section>
+
+      {/* Forgot Password Modal */}
+      {isForgotPassword && (
+        <div className="fixed inset-0 z-[80] flex items-center justify-center px-[24px]">
+          {/* Backdrop */}
+          <div 
+            className="absolute inset-0 bg-black/75 backdrop-blur-sm animate-fade-in cursor-pointer"
+            onClick={() => {
+              setIsForgotPassword(false);
+              setResetSuccess(false);
+              setResetError('');
+              setResetEmailError('');
+            }}
+          />
+          
+          {/* Modal Card */}
+          <div className="bg-[#1a1c1c] border border-[#333535] rounded-2xl p-6 w-full max-w-[340px] z-10 shadow-2xl relative animate-scale-in flex flex-col">
+            {/* Close Cross Icon */}
+            <button
+              onClick={() => {
+                setIsForgotPassword(false);
+                setResetSuccess(false);
+                setResetError('');
+                setResetEmailError('');
+              }}
+              className="absolute top-4 right-4 text-[#c3caac] hover:text-white transition-colors cursor-pointer w-8 h-8 flex items-center justify-center rounded-full hover:bg-[#252828]"
+            >
+              <span className="material-symbols-outlined text-[20px]">close</span>
+            </button>
+
+            {/* Title & Subtext */}
+            <div className="mb-6 flex flex-col items-center text-center">
+              <h2 className="font-bold text-[20px] text-[#ffffff] font-[family-name:var(--font-geist-sans)] mb-2">
+                Reset Password
+              </h2>
+              <p className="text-[13px] text-[#c3caac] font-[family-name:var(--font-inter)] leading-relaxed">
+                Enter your email and we'll send you a reset link
+              </p>
+            </div>
+
+            {resetSuccess ? (
+              <div className="flex flex-col items-center text-center py-4 animate-scale-in">
+                <span className="material-symbols-outlined text-[#b8f600] text-[48px] mb-4">
+                  check_circle
+                </span>
+                <p className="text-[14px] leading-[22px] text-[#ffffff] font-semibold font-[family-name:var(--font-inter)]">
+                  Reset link sent! Check your inbox and spam folder.
+                </p>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-4">
+                {/* Email Input */}
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[11px] leading-[16px] tracking-[0.05em] font-bold text-[#c3caac] uppercase font-[family-name:var(--font-geist-sans)]">
+                    Email Address
+                  </label>
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => {
+                      setEmail(e.target.value);
+                      if (resetEmailError) setResetEmailError('');
+                      if (resetError) setResetError('');
+                    }}
+                    className={`w-full bg-[#121414] border ${resetEmailError || resetError ? 'border-red-500 focus:border-red-500' : 'border-[#333535] focus:border-[#a1d800]'} rounded-xl px-4 py-[12px] text-[#ffffff] text-[15px] placeholder:text-[#474746] transition-colors duration-200 outline-none font-[family-name:var(--font-inter)]`}
+                    placeholder="name@example.com"
+                  />
+                  {(resetEmailError || resetError) && (
+                    <span className="text-red-500 text-[12px] font-medium font-[family-name:var(--font-inter)]">
+                      {resetEmailError || resetError}
+                    </span>
+                  )}
+                </div>
+
+                {/* Send Button */}
+                <div className="mt-2">
+                  <button
+                    onClick={handleSendResetLink}
+                    disabled={resetLoading}
+                    className="w-full bg-[#b8f600] text-[#141f00] py-[12px] rounded-full text-[15px] font-bold font-[family-name:var(--font-geist-sans)] tracking-[-0.01em] active:scale-[0.98] transition-all duration-150 flex justify-center items-center cursor-pointer disabled:opacity-50 disabled:bg-[#434933] disabled:text-[#8d9479] disabled:cursor-not-allowed"
+                  >
+                    {resetLoading ? (
+                      <svg className="animate-spin h-5 w-5 text-[#141f00]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                    ) : 'Send Reset Link'}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </main>
   );
 }

@@ -174,7 +174,7 @@ export default function TransactionDetailSheet({ transaction, isOpen, onClose, o
         <div className="absolute bottom-0 left-0 right-0 bg-[#121414] p-[20px] pt-4 border-t border-[#333535]">
           <button 
             onClick={() => setShowConfirm(true)}
-            className="w-full bg-[#991b1b] hover:bg-[#b91c1c] text-[#ffffff] font-bold text-[18px] leading-[28px] tracking-tight py-4 rounded-full shadow-[0_4px_20px_rgb(153,27,27,0.3)] transition-all active:scale-95 flex items-center justify-center font-[family-name:var(--font-geist-sans)] gap-2"
+            className="w-full bg-[#991b1b] hover:bg-[#b91c1c] text-[#ffffff] font-bold text-[18px] leading-[28px] tracking-tight py-4 rounded-full shadow-[0_4px_20px_rgb(153,27,27,0.3)] transition-all active:scale-95 flex items-center justify-center font-[family-name:var(--font-geist-sans)] gap-2 cursor-pointer"
           >
             <span className="material-symbols-outlined text-[20px]">delete</span>
             Delete Transaction
@@ -200,7 +200,7 @@ export default function TransactionDetailSheet({ transaction, isOpen, onClose, o
               <button 
                 onClick={handleDelete}
                 disabled={isDeleting}
-                className="w-full bg-[#991b1b] text-[#ffffff] font-bold py-3.5 rounded-xl transition-colors active:scale-95 font-[family-name:var(--font-geist-sans)] disabled:opacity-50 flex justify-center items-center"
+                className="w-full bg-[#991b1b] text-[#ffffff] font-bold py-3.5 rounded-xl transition-colors active:scale-95 font-[family-name:var(--font-geist-sans)] disabled:opacity-50 flex justify-center items-center cursor-pointer"
               >
                 {isDeleting ? (
                   <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -212,7 +212,7 @@ export default function TransactionDetailSheet({ transaction, isOpen, onClose, o
               <button 
                 onClick={() => setShowConfirm(false)}
                 disabled={isDeleting}
-                className="w-full bg-[#2a2d2d] text-[#ffffff] hover:bg-[#333535] font-bold py-3.5 rounded-xl transition-colors active:scale-95 font-[family-name:var(--font-geist-sans)] disabled:opacity-50"
+                className="w-full bg-[#2a2d2d] text-[#ffffff] hover:bg-[#333535] font-bold py-3.5 rounded-xl transition-colors active:scale-95 font-[family-name:var(--font-geist-sans)] disabled:opacity-50 cursor-pointer"
               >
                 Cancel
               </button>
