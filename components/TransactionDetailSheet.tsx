@@ -8,6 +8,7 @@ interface TransactionDetailSheetProps {
   isOpen: boolean;
   onClose: () => void;
   onDeleteSuccess: () => void;
+  onEditClick: (transaction: Transaction) => void;
 }
 
 const getCategoryIcon = (category: string) => {
@@ -15,16 +16,15 @@ const getCategoryIcon = (category: string) => {
     'PG Rent & Bill': 'home_work',
     'Food & Dining': 'restaurant',
     'Transport': 'directions_car',
-    'Health': 'medical_services',
     'Online Order': 'shopping_bag',
-    'Entertainment': 'movie',
+    'Shopping': 'shopping_cart',
     'Groceries': 'local_grocery_store',
-    'Travel': 'flight',
+    'Miscellaneous': 'payments',
   };
   return map[category] || 'payments';
 };
 
-export default function TransactionDetailSheet({ transaction, isOpen, onClose, onDeleteSuccess }: TransactionDetailSheetProps) {
+export default function TransactionDetailSheet({ transaction, isOpen, onClose, onDeleteSuccess, onEditClick }: TransactionDetailSheetProps) {
   const [showConfirm, setShowConfirm] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
@@ -171,13 +171,20 @@ export default function TransactionDetailSheet({ transaction, isOpen, onClose, o
         </div>
 
         {/* Action Button Area */}
-        <div className="absolute bottom-0 left-0 right-0 bg-[#121414] p-[20px] pt-4 border-t border-[#333535]">
+        <div className="absolute bottom-0 left-0 right-0 bg-[#121414] p-[20px] pt-4 border-t border-[#333535] flex gap-3">
+          <button 
+            onClick={() => onEditClick(transaction)}
+            className="flex-1 bg-[#a1d800] hover:bg-[#b8f600] text-[#ffffff] font-bold text-[18px] leading-[28px] tracking-tight py-[14px] rounded-full shadow-[0_4px_20px_rgb(161,216,0,0.2)] transition-all active:scale-95 flex items-center justify-center font-[family-name:var(--font-geist-sans)] gap-2 cursor-pointer"
+          >
+            <span className="material-symbols-outlined text-[20px]">edit</span>
+            Edit
+          </button>
           <button 
             onClick={() => setShowConfirm(true)}
-            className="w-full bg-[#991b1b] hover:bg-[#b91c1c] text-[#ffffff] font-bold text-[18px] leading-[28px] tracking-tight py-4 rounded-full shadow-[0_4px_20px_rgb(153,27,27,0.3)] transition-all active:scale-95 flex items-center justify-center font-[family-name:var(--font-geist-sans)] gap-2 cursor-pointer"
+            className="flex-1 bg-[#991b1b] hover:bg-[#b91c1c] text-[#ffffff] font-bold text-[18px] leading-[28px] tracking-tight py-[14px] rounded-full shadow-[0_4px_20px_rgb(153,27,27,0.3)] transition-all active:scale-95 flex items-center justify-center font-[family-name:var(--font-geist-sans)] gap-2 cursor-pointer"
           >
             <span className="material-symbols-outlined text-[20px]">delete</span>
-            Delete Transaction
+            Delete
           </button>
         </div>
       </div>

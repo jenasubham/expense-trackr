@@ -1,0 +1,17 @@
+{
+  "name": "Expense Tracker",
+  "short_name": "ExpenseTrackr",
+  "description": "Personal Expense Tracker",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#121414",
+  "theme_color": "#a1d800",
+  "icons": [
+    {
+      "src": "/icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

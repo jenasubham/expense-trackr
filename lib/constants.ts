@@ -6,11 +6,10 @@ export const CATEGORIES: Category[] = [
   'PG Rent & Bill',
   'Food & Dining',
   'Transport',
-  'Health',
   'Online Order',
-  'Entertainment',
+  'Shopping',
   'Groceries',
-  'Travel',
+  'Miscellaneous',
 ];
 
 export const PAYMENT_MODES: PaymentMode[] = [

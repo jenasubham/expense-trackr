@@ -21,6 +21,7 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: "Expense Tracker",
   description: "Personal Expense Tracker",
+  manifest: "/manifest.json",
 };
 
 export default function RootLayout({

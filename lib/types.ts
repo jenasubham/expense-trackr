@@ -8,11 +8,10 @@ export type Category =
   | 'PG Rent & Bill'
   | 'Food & Dining'
   | 'Transport'
-  | 'Health'
   | 'Online Order'
-  | 'Entertainment'
+  | 'Shopping'
   | 'Groceries'
-  | 'Travel';
+  | 'Miscellaneous';
 
 export interface Transaction {
   id: string;

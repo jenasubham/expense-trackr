@@ -8,17 +8,17 @@ import { useAuth } from '@/lib/context/AuthContext';
 import { Transaction } from '@/lib/types';
 import TransactionDetailSheet from '@/components/TransactionDetailSheet';
 import DateRangePicker from '@/components/DateRangePicker';
+import AddTransactionSheet from '@/components/AddTransactionSheet';
 
 const getCategoryIcon = (category: string) => {
   const map: Record<string, string> = {
     'PG Rent & Bill': 'home_work',
     'Food & Dining': 'restaurant',
     'Transport': 'directions_car',
-    'Health': 'medical_services',
     'Online Order': 'shopping_bag',
-    'Entertainment': 'movie',
+    'Shopping': 'shopping_cart',
     'Groceries': 'local_grocery_store',
-    'Travel': 'flight',
+    'Miscellaneous': 'payments',
   };
   return map[category] || 'payments';
 };
@@ -45,6 +45,9 @@ export default function SearchPage() {
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [isRangePickerOpen, setIsRangePickerOpen] = useState(false);
+  const [isSheetOpen, setIsSheetOpen] = useState(false);
+  const [sheetMode, setSheetMode] = useState<'add' | 'edit'>('add');
+  const [transactionToEdit, setTransactionToEdit] = useState<Transaction | undefined>(undefined);
 
   const isFilterActive = selectedType !== 'All' || !!fromDate || !!toDate;
 
@@ -349,6 +352,23 @@ export default function SearchPage() {
           setSelectedTransaction(null);
           setRefreshTrigger(prev => prev + 1);
         }}
+        onEditClick={(tx) => {
+          setSelectedTransaction(null);
+          setSheetMode('edit');
+          setTransactionToEdit(tx);
+          setIsSheetOpen(true);
+        }}
+      />
+
+      <AddTransactionSheet 
+        isOpen={isSheetOpen} 
+        onClose={() => {
+          setIsSheetOpen(false);
+          setTransactionToEdit(undefined);
+        }} 
+        onSuccess={() => setRefreshTrigger(prev => prev + 1)} 
+        mode={sheetMode}
+        transaction={transactionToEdit}
       />
 
       <DateRangePicker

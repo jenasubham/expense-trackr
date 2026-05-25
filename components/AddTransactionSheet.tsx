@@ -1,24 +1,32 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { collection, addDoc } from 'firebase/firestore';
+import { collection, addDoc, doc, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/lib/context/AuthContext';
 import { CATEGORIES, PAYMENT_MODES, UPI_APPS, TRANSACTION_TYPES } from '@/lib/constants';
-import { TransactionType, Category, PaymentMode, UpiApp } from '@/lib/types';
+import { TransactionType, Category, PaymentMode, UpiApp, Transaction } from '@/lib/types';
 import CustomDatePicker from './CustomDatePicker';
 
 interface AddTransactionSheetProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
+  mode?: 'add' | 'edit';
+  transaction?: Transaction;
 }
 
-export default function AddTransactionSheet({ isOpen, onClose, onSuccess }: AddTransactionSheetProps) {
+export default function AddTransactionSheet({ 
+  isOpen, 
+  onClose, 
+  onSuccess,
+  mode = 'add',
+  transaction
+}: AddTransactionSheetProps) {
   const { user } = useAuth();
   const [type, setType] = useState<TransactionType>('Need');
   const [amount, setAmount] = useState('');
-  const [category, setCategory] = useState<Category>('Food & Dining');
+  const [category, setCategory] = useState<Category>('Miscellaneous');
   const [date, setDate] = useState(new Date().toLocaleDateString('en-CA'));
   const [description, setDescription] = useState('');
   const [paymentMode, setPaymentMode] = useState<PaymentMode>('UPI');
@@ -29,22 +37,38 @@ export default function AddTransactionSheet({ isOpen, onClose, onSuccess }: AddT
   const [descriptionError, setDescriptionError] = useState(false);
   const [isCategoryDropdownOpen, setIsCategoryDropdownOpen] = useState(false);
 
-  // Reset form when opened
+  // Reset form or pre-fill when opened
   useEffect(() => {
     if (isOpen) {
-      setType('Need');
-      setAmount('');
-      setCategory('Food & Dining');
-      setDate(new Date().toLocaleDateString('en-CA'));
-      setDescription('');
-      setPaymentMode('UPI');
-      setUpiApp('PhonePe');
-      setNotes('');
+      if (mode === 'edit' && transaction) {
+        setType(transaction.type);
+        setAmount(transaction.amount.toString());
+        setCategory(transaction.category);
+        
+        // Date parsing timezone-safely
+        const dateStr = typeof transaction.date === 'string' ? transaction.date : (transaction.date as Date).toISOString();
+        const cleanDate = dateStr.includes('T') ? dateStr.split('T')[0] : dateStr;
+        setDate(cleanDate);
+        
+        setDescription(transaction.description);
+        setPaymentMode(transaction.paymentMode);
+        setUpiApp(transaction.upiApp || 'PhonePe');
+        setNotes(transaction.notes || '');
+      } else {
+        setType('Need');
+        setAmount('');
+        setCategory('Miscellaneous');
+        setDate(new Date().toLocaleDateString('en-CA'));
+        setDescription('');
+        setPaymentMode('UPI');
+        setUpiApp('PhonePe');
+        setNotes('');
+      }
       setToast('');
       setDescriptionError(false);
       setIsCategoryDropdownOpen(false);
     }
-  }, [isOpen]);
+  }, [isOpen, mode, transaction]);
 
   const handleSubmit = async () => {
     if (!user) return;
@@ -62,7 +86,7 @@ export default function AddTransactionSheet({ isOpen, onClose, onSuccess }: AddT
 
     setLoading(true);
     try {
-      await addDoc(collection(db, 'transactions'), {
+      const transactionData = {
         userId: user.uid,
         type,
         amount: Number(amount),
@@ -72,17 +96,27 @@ export default function AddTransactionSheet({ isOpen, onClose, onSuccess }: AddT
         paymentMode,
         ...(paymentMode === 'UPI' ? { upiApp } : {}),
         notes,
-        createdAt: new Date().toISOString()
-      });
+      };
 
-      setToast('Transaction added successfully!');
+      if (mode === 'edit' && transaction) {
+        const docRef = doc(db, 'transactions', transaction.id);
+        await updateDoc(docRef, transactionData);
+        setToast('Transaction updated successfully!');
+      } else {
+        await addDoc(collection(db, 'transactions'), {
+          ...transactionData,
+          createdAt: new Date().toISOString()
+        });
+        setToast('Transaction added successfully!');
+      }
+
       setTimeout(() => {
         onSuccess();
         onClose();
       }, 1000);
     } catch (error) {
-      console.error("Error adding document: ", error);
-      setToast('Error adding transaction');
+      console.error("Error saving document: ", error);
+      setToast(mode === 'edit' ? 'Error updating transaction' : 'Error adding transaction');
       setTimeout(() => setToast(''), 3000);
     } finally {
       setLoading(false);
@@ -135,7 +169,9 @@ export default function AddTransactionSheet({ isOpen, onClose, onSuccess }: AddT
         {/* Header */}
         <div className="px-[20px] pb-4 border-b border-[#333535]">
           <div className="flex items-center justify-between">
-            <h1 className="font-bold text-[24px] text-[#ffffff] font-[family-name:var(--font-geist-sans)] tracking-tight">Add Transaction</h1>
+            <h1 className="font-bold text-[24px] text-[#ffffff] font-[family-name:var(--font-geist-sans)] tracking-tight">
+              {mode === 'edit' ? 'Edit Transaction' : 'Add Transaction'}
+            </h1>
             <button 
               onClick={onClose}
               className="w-8 h-8 flex items-center justify-center text-[#c3caac] hover:bg-[#1a1c1c] rounded-full transition-colors cursor-pointer"
@@ -341,14 +377,14 @@ export default function AddTransactionSheet({ isOpen, onClose, onSuccess }: AddT
           <button 
             onClick={handleSubmit}
             disabled={loading}
-            className="w-full bg-[#a1d800] hover:bg-[#b8f600] text-[#141f00] font-bold text-[20px] leading-[28px] tracking-tight py-4 rounded-full shadow-[0_4px_20px_rgb(161,216,0,0.2)] transition-all active:scale-95 flex items-center justify-center font-[family-name:var(--font-geist-sans)] disabled:opacity-70 disabled:cursor-not-allowed cursor-pointer"
+            className="w-full bg-[#a1d800] hover:bg-[#b8f600] text-[#141f00] font-bold text-[20px] leading-[28px] tracking-tight py-[14px] rounded-full shadow-[0_4px_20px_rgb(161,216,0,0.2)] transition-all active:scale-95 flex items-center justify-center font-[family-name:var(--font-geist-sans)] disabled:opacity-70 disabled:cursor-not-allowed cursor-pointer"
           >
             {loading ? (
               <svg className="animate-spin h-6 w-6 text-[#141f00]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
               </svg>
-            ) : 'Add Transaction'}
+            ) : mode === 'edit' ? 'Save Changes' : 'Add Transaction'}
           </button>
         </div>
       </div>

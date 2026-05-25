@@ -13,11 +13,10 @@ const getCategoryIcon = (category: string) => {
     'PG Rent & Bill': 'home_work',
     'Food & Dining': 'restaurant',
     'Transport': 'directions_car',
-    'Health': 'medical_services',
     'Online Order': 'shopping_bag',
-    'Entertainment': 'movie',
+    'Shopping': 'shopping_cart',
     'Groceries': 'local_grocery_store',
-    'Travel': 'flight',
+    'Miscellaneous': 'payments',
   };
   return map[category] || 'payments';
 };
