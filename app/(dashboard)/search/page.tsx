@@ -324,7 +324,7 @@ export default function SearchPage() {
                   <div className="flex flex-col min-w-0">
                     <p 
                       title={tx.description}
-                      className="text-[16px] text-[#ffffff] font-medium leading-tight font-[family-name:var(--font-inter)] line-clamp-1 mb-1 cursor-help"
+                      className="text-[16px] text-[#ffffff] font-medium leading-tight font-[family-name:var(--font-inter)] line-clamp-1 mb-1"
                     >
                       {tx.description}
                     </p>
