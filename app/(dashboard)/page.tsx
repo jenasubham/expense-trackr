@@ -237,12 +237,15 @@ export default function Dashboard() {
                 onClick={() => setSelectedTransaction(tx)}
                 className="w-full flex items-center justify-between p-[16px] bg-[#1e2020] border border-[#434933] rounded-2xl transition-colors hover:bg-[#252828] text-left cursor-pointer active:scale-[0.98]"
               >
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 min-w-12 rounded-full bg-[#333535] flex items-center justify-center border border-[#434933]">
+                <div className="flex items-center gap-4 min-w-0 flex-1">
+                  <div className="w-12 h-12 min-w-12 rounded-full bg-[#333535] flex items-center justify-center border border-[#434933] shrink-0">
                     <span className="material-symbols-outlined text-[#e2e2e2] text-[22px]">{getCategoryIcon(tx.category)}</span>
                   </div>
-                  <div className="flex flex-col">
-                    <p className="text-[16px] text-[#ffffff] font-medium leading-tight font-[family-name:var(--font-inter)] line-clamp-1 mb-1">
+                  <div className="flex flex-col min-w-0">
+                    <p 
+                      title={tx.description}
+                      className="text-[16px] text-[#ffffff] font-medium leading-tight font-[family-name:var(--font-inter)] line-clamp-1 mb-1 cursor-help"
+                    >
                       {tx.description}
                     </p>
                     <p className="text-[13px] text-[#8d9479] font-[family-name:var(--font-inter)] font-medium">
@@ -250,8 +253,8 @@ export default function Dashboard() {
                     </p>
                   </div>
                 </div>
-                <div className="flex flex-col items-end gap-1.5 ml-2">
-                  <span className={`font-bold text-[18px] ${amountColor} font-[family-name:var(--font-geist-sans)] tracking-tight`}>
+                <div className="flex flex-col items-end gap-1.5 ml-2 shrink-0">
+                  <span className={`font-bold text-[18px] ${amountColor} font-[family-name:var(--font-geist-sans)] tracking-tight whitespace-nowrap`}>
                     {sign}₹{tx.amount.toLocaleString('en-IN')}
                   </span>
                   <span className={`px-2.5 py-0.5 border ${badgeBorder} ${badgeBg} text-[9px] tracking-[0.05em] font-bold rounded-full ${badgeText} uppercase font-[family-name:var(--font-geist-sans)]`}>
