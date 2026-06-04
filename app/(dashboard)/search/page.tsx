@@ -5,7 +5,8 @@ import Link from 'next/link';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/lib/context/AuthContext';
-import { Transaction } from '@/lib/types';
+import { Transaction, Category, PaymentMode, TransactionType } from '@/lib/types';
+import { CATEGORIES, PAYMENT_MODES, UPI_APPS, TRANSACTION_TYPES } from '@/lib/constants';
 import TransactionDetailSheet from '@/components/TransactionDetailSheet';
 import DateRangePicker from '@/components/DateRangePicker';
 import AddTransactionSheet from '@/components/AddTransactionSheet';
@@ -34,12 +35,42 @@ const formatLocalDate = (dateVal: string | Date) => {
   });
 };
 
+const getPresetDateRange = (preset: string) => {
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = now.getMonth(); // 0-indexed month (0 = Jan, 11 = Dec)
+  
+  let fromDate = '';
+  let toDate = '';
+  
+  if (preset === 'This Month') {
+    const from = new Date(y, m, 1);
+    const to = new Date(y, m + 1, 0); // last day of current month
+    fromDate = from.toLocaleDateString('en-CA');
+    toDate = to.toLocaleDateString('en-CA');
+  } else if (preset === 'Last Month') {
+    const from = new Date(y, m - 1, 1);
+    const to = new Date(y, m, 0); // last day of last month
+    fromDate = from.toLocaleDateString('en-CA');
+    toDate = to.toLocaleDateString('en-CA');
+  } else if (preset === '2 Months Ago') {
+    const from = new Date(y, m - 2, 1);
+    const to = new Date(y, m - 1, 0); // last day of 2 months ago
+    fromDate = from.toLocaleDateString('en-CA');
+    toDate = to.toLocaleDateString('en-CA');
+  } else if (preset === 'Last 3 Months') {
+    const from = new Date(y, m - 2, 1);
+    const to = new Date(y, m + 1, 0); // last day of current month
+    fromDate = from.toLocaleDateString('en-CA');
+    toDate = to.toLocaleDateString('en-CA');
+  }
+  
+  return { from: fromDate, to: toDate };
+};
+
 export default function SearchPage() {
   const { user } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedType, setSelectedType] = useState<string>('All');
-  const [fromDate, setFromDate] = useState('');
-  const [toDate, setToDate] = useState('');
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
@@ -49,7 +80,40 @@ export default function SearchPage() {
   const [sheetMode, setSheetMode] = useState<'add' | 'edit'>('add');
   const [transactionToEdit, setTransactionToEdit] = useState<Transaction | undefined>(undefined);
 
-  const isFilterActive = selectedType !== 'All' || !!fromDate || !!toDate;
+  // Applied states (used in list filtering)
+  const [appliedFromDate, setAppliedFromDate] = useState('');
+  const [appliedToDate, setAppliedToDate] = useState('');
+  const [appliedTypes, setAppliedTypes] = useState<TransactionType[]>([]);
+  const [appliedCategories, setAppliedCategories] = useState<Category[]>([]);
+  const [appliedPaymentModes, setAppliedPaymentModes] = useState<PaymentMode[]>([]);
+  const [appliedUpiApps, setAppliedUpiApps] = useState<string[]>([]);
+  const [appliedMinAmount, setAppliedMinAmount] = useState('');
+  const [appliedMaxAmount, setAppliedMaxAmount] = useState('');
+  const [appliedPreset, setAppliedPreset] = useState('');
+
+  // Draft states (used inside the filter drawer)
+  const [draftFromDate, setDraftFromDate] = useState('');
+  const [draftToDate, setDraftToDate] = useState('');
+  const [draftTypes, setDraftTypes] = useState<TransactionType[]>([]);
+  const [draftCategories, setDraftCategories] = useState<Category[]>([]);
+  const [draftPaymentModes, setDraftPaymentModes] = useState<PaymentMode[]>([]);
+  const [draftUpiApps, setDraftUpiApps] = useState<string[]>([]);
+  const [draftMinAmount, setDraftMinAmount] = useState('');
+  const [draftMaxAmount, setDraftMaxAmount] = useState('');
+  const [draftPreset, setDraftPreset] = useState('');
+
+  // Drawer control
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+
+  const activeFilterCount = useMemo(() => {
+    let count = 0;
+    if (appliedFromDate || appliedToDate) count++;
+    if (appliedTypes.length > 0) count++;
+    if (appliedCategories.length > 0) count++;
+    if (appliedPaymentModes.length > 0 || appliedUpiApps.length > 0) count++;
+    if (appliedMinAmount || appliedMaxAmount) count++;
+    return count;
+  }, [appliedFromDate, appliedToDate, appliedTypes, appliedCategories, appliedPaymentModes, appliedUpiApps, appliedMinAmount, appliedMaxAmount]);
 
   const formatDateRangeForChip = (fromDateStr: string, toDateStr: string) => {
     if (!fromDateStr) return '';
@@ -103,6 +167,191 @@ export default function SearchPage() {
     fetchAllTransactions();
   }, [user, refreshTrigger]);
 
+  const openDrawer = () => {
+    setDraftFromDate(appliedFromDate);
+    setDraftToDate(appliedToDate);
+    setDraftTypes(appliedTypes);
+    setDraftCategories(appliedCategories);
+    setDraftPaymentModes(appliedPaymentModes);
+    setDraftUpiApps(appliedUpiApps);
+    setDraftMinAmount(appliedMinAmount);
+    setDraftMaxAmount(appliedMaxAmount);
+    setDraftPreset(appliedPreset);
+    setIsDrawerOpen(true);
+  };
+
+  const handleApplyFilters = () => {
+    setAppliedFromDate(draftFromDate);
+    setAppliedToDate(draftToDate);
+    setAppliedTypes(draftTypes);
+    setAppliedCategories(draftCategories);
+    setAppliedPaymentModes(draftPaymentModes);
+    setAppliedUpiApps(draftUpiApps);
+    setAppliedMinAmount(draftMinAmount);
+    setAppliedMaxAmount(draftMaxAmount);
+    setAppliedPreset(draftPreset);
+    setIsDrawerOpen(false);
+  };
+
+  const handleResetAll = () => {
+    setAppliedFromDate('');
+    setAppliedToDate('');
+    setAppliedTypes([]);
+    setAppliedCategories([]);
+    setAppliedPaymentModes([]);
+    setAppliedUpiApps([]);
+    setAppliedMinAmount('');
+    setAppliedMaxAmount('');
+    setAppliedPreset('');
+
+    setDraftFromDate('');
+    setDraftToDate('');
+    setDraftTypes([]);
+    setDraftCategories([]);
+    setDraftPaymentModes([]);
+    setDraftUpiApps([]);
+    setDraftMinAmount('');
+    setDraftMaxAmount('');
+    setDraftPreset('');
+    setIsDrawerOpen(false);
+  };
+
+  const handleClearAllFilters = () => {
+    setAppliedFromDate('');
+    setAppliedToDate('');
+    setAppliedTypes([]);
+    setAppliedCategories([]);
+    setAppliedPaymentModes([]);
+    setAppliedUpiApps([]);
+    setAppliedMinAmount('');
+    setAppliedMaxAmount('');
+    setAppliedPreset('');
+
+    setDraftFromDate('');
+    setDraftToDate('');
+    setDraftTypes([]);
+    setDraftCategories([]);
+    setDraftPaymentModes([]);
+    setDraftUpiApps([]);
+    setDraftMinAmount('');
+    setDraftMaxAmount('');
+    setDraftPreset('');
+  };
+
+  const handlePresetClick = (preset: string) => {
+    if (preset === 'Date Range') {
+      setIsRangePickerOpen(true);
+    } else {
+      const { from, to } = getPresetDateRange(preset);
+      setDraftFromDate(from);
+      setDraftToDate(to);
+      setDraftPreset(preset);
+      setAppliedFromDate(from);
+      setAppliedToDate(to);
+      setAppliedPreset(preset);
+    }
+  };
+
+  const toggleDraftType = (type: TransactionType) => {
+    setDraftTypes(prev => 
+      prev.includes(type) ? prev.filter(t => t !== type) : [...prev, type]
+    );
+  };
+
+  const toggleDraftCategory = (cat: Category) => {
+    setDraftCategories(prev => 
+      prev.includes(cat) ? prev.filter(c => c !== cat) : [...prev, cat]
+    );
+  };
+
+  const toggleDraftPaymentMode = (mode: PaymentMode) => {
+    setDraftPaymentModes(prev => {
+      const isIncluded = prev.includes(mode);
+      const newModes = isIncluded ? prev.filter(m => m !== mode) : [...prev, mode];
+      if (mode === 'UPI' && isIncluded) {
+        setDraftUpiApps([]);
+      }
+      return newModes;
+    });
+  };
+
+  const toggleDraftUpiApp = (app: string) => {
+    setDraftUpiApps(prev => 
+      prev.includes(app) ? prev.filter(a => a !== app) : [...prev, app]
+    );
+  };
+
+  const removeAppliedType = (type: TransactionType) => {
+    setAppliedTypes(prev => prev.filter(t => t !== type));
+    setDraftTypes(prev => prev.filter(t => t !== type));
+  };
+
+  const removeAppliedCategory = (cat: Category) => {
+    setAppliedCategories(prev => prev.filter(c => c !== cat));
+    setDraftCategories(prev => prev.filter(c => c !== cat));
+  };
+
+  const removeAppliedPaymentMode = (mode: PaymentMode) => {
+    setAppliedPaymentModes(prev => prev.filter(m => m !== mode));
+    setDraftPaymentModes(prev => prev.filter(m => m !== mode));
+    if (mode === 'UPI') {
+      setAppliedUpiApps([]);
+      setDraftUpiApps([]);
+    }
+  };
+
+  const removeAppliedUpiApp = (app: string) => {
+    setAppliedUpiApps(prev => {
+      const next = prev.filter(a => a !== app);
+      if (next.length === 0) {
+        setAppliedPaymentModes(modes => modes.filter(m => m !== 'UPI'));
+      }
+      return next;
+    });
+    setDraftUpiApps(prev => {
+      const next = prev.filter(a => a !== app);
+      if (next.length === 0) {
+        setDraftPaymentModes(modes => modes.filter(m => m !== 'UPI'));
+      }
+      return next;
+    });
+  };
+
+  const removeAppliedAmountRange = () => {
+    setAppliedMinAmount('');
+    setAppliedMaxAmount('');
+    setDraftMinAmount('');
+    setDraftMaxAmount('');
+  };
+
+  const togglePhonePeFilter = () => {
+    const isSelected = appliedUpiApps.includes('PhonePe');
+    if (isSelected) {
+      removeAppliedUpiApp('PhonePe');
+    } else {
+      setAppliedUpiApps(prev => [...prev, 'PhonePe']);
+      setDraftUpiApps(prev => [...prev, 'PhonePe']);
+      if (!appliedPaymentModes.includes('UPI')) {
+        setAppliedPaymentModes(prev => [...prev, 'UPI']);
+        setDraftPaymentModes(prev => [...prev, 'UPI']);
+      }
+    }
+  };
+
+  const togglePaytmFilter = () => {
+    const isSelected = appliedUpiApps.includes('Paytm');
+    if (isSelected) {
+      removeAppliedUpiApp('Paytm');
+    } else {
+      setAppliedUpiApps(prev => [...prev, 'Paytm']);
+      setDraftUpiApps(prev => [...prev, 'Paytm']);
+      if (!appliedPaymentModes.includes('UPI')) {
+        setAppliedPaymentModes(prev => [...prev, 'UPI']);
+        setDraftPaymentModes(prev => [...prev, 'UPI']);
+      }
+    }
+  };
+
   const filteredTransactions = useMemo(() => {
     return transactions.filter(tx => {
       // 1. Search term matching
@@ -115,27 +364,63 @@ export default function SearchPage() {
         (tx.category || '').toLowerCase().includes(term) ||
         amountStr.includes(term);
 
-      // 2. Type matching (Need, Want, Income)
+      // 2. Type matching (multi-select)
       let matchesType = true;
-      if (selectedType !== 'All') {
-        matchesType = tx.type === selectedType;
+      if (appliedTypes.length > 0) {
+        matchesType = appliedTypes.includes(tx.type);
       }
 
-      // 3. Date range matching
+      // 3. Category matching (multi-select)
+      let matchesCategory = true;
+      if (appliedCategories.length > 0) {
+        matchesCategory = appliedCategories.includes(tx.category);
+      }
+
+      // 4. Payment mode matching (includes UPI sub-apps checking)
+      let matchesPaymentMode = true;
+      if (appliedPaymentModes.length > 0 || appliedUpiApps.length > 0) {
+        if (tx.paymentMode === 'UPI') {
+          if (appliedUpiApps.length > 0) {
+            matchesPaymentMode = appliedUpiApps.includes(tx.upiApp || '');
+          } else {
+            matchesPaymentMode = appliedPaymentModes.includes('UPI');
+          }
+        } else {
+          matchesPaymentMode = appliedPaymentModes.includes(tx.paymentMode);
+        }
+      }
+
+      // 5. Date range matching
       let matchesDateRange = true;
       const strTxDate = typeof tx.date === 'string' ? tx.date : (tx.date as Date).toISOString();
       const cleanTxDate = strTxDate.includes('T') ? strTxDate.split('T')[0] : strTxDate;
-      if (fromDate && cleanTxDate < fromDate) matchesDateRange = false;
-      if (toDate && cleanTxDate > toDate) matchesDateRange = false;
+      if (appliedFromDate && cleanTxDate < appliedFromDate) matchesDateRange = false;
+      if (appliedToDate && cleanTxDate > appliedToDate) matchesDateRange = false;
 
-      return matchesSearch && matchesType && matchesDateRange;
+      // 6. Amount range matching
+      let matchesAmountRange = true;
+      if (appliedMinAmount && tx.amount < Number(appliedMinAmount)) matchesAmountRange = false;
+      if (appliedMaxAmount && tx.amount > Number(appliedMaxAmount)) matchesAmountRange = false;
+
+      return matchesSearch && matchesType && matchesCategory && matchesPaymentMode && matchesDateRange && matchesAmountRange;
     });
-  }, [transactions, searchTerm, selectedType, fromDate, toDate]);
+  }, [
+    transactions,
+    searchTerm,
+    appliedTypes,
+    appliedCategories,
+    appliedPaymentModes,
+    appliedUpiApps,
+    appliedFromDate,
+    appliedToDate,
+    appliedMinAmount,
+    appliedMaxAmount
+  ]);
 
   return (
     <main className="px-[20px] pt-8 max-w-[390px] mx-auto w-full relative flex flex-col h-[calc(100dvh-96px)] overflow-hidden">
       {/* Header */}
-      <header className="flex mb-6 shrink-0">
+      <header className="flex justify-between items-center w-full mb-6 shrink-0">
         <div className="flex items-center gap-3">
           <Link href="/profile" className="w-12 h-12 rounded-full overflow-hidden border border-[#434933] bg-[#1A1A1A] flex items-center justify-center hover:border-[#a1d800] transition-colors cursor-pointer">
             <span className="material-symbols-outlined text-[#a1d800] text-2xl">person</span>
@@ -144,6 +429,18 @@ export default function SearchPage() {
             Transactions
           </h1>
         </div>
+        <button
+          type="button"
+          onClick={openDrawer}
+          className="relative w-12 h-12 flex items-center justify-center rounded-full bg-[#1A1A1A] border border-[#2C2C2E] hover:border-[#a1d800] transition-colors cursor-pointer"
+        >
+          <span className="material-symbols-outlined text-[#a1d800] text-2xl">filter_list</span>
+          {activeFilterCount > 0 && (
+            <span className="absolute top-1.5 right-1.5 w-5 h-5 bg-[#a1d800] text-[#141f00] font-bold text-[10px] rounded-full flex items-center justify-center shadow-[0_0_8px_rgba(161,216,0,0.5)] animate-fade-in">
+              {activeFilterCount}
+            </span>
+          )}
+        </button>
       </header>
 
       {/* Prominent Search Bar */}
@@ -165,12 +462,12 @@ export default function SearchPage() {
 
       {/* Inline scrollable chips row */}
       <div className="flex gap-[12px] overflow-x-auto pb-4 mb-4 shrink-0 custom-scrollbar [&::-webkit-scrollbar]:hidden">
-        {/* All Type Chip */}
+        {/* 1. All Chip */}
         <button 
           type="button"
-          onClick={() => setSelectedType('All')}
+          onClick={handleClearAllFilters}
           className={`whitespace-nowrap px-4 py-2 rounded-full border font-[family-name:var(--font-geist-sans)] text-[12px] leading-[16px] tracking-[0.05em] font-semibold uppercase transition-colors cursor-pointer ${
-            selectedType === 'All' 
+            activeFilterCount === 0
               ? 'border-[#a1d800] bg-[#b8f600] text-[#506e00]' 
               : 'border-[#2C2C2E] bg-[#1e2020] text-[#c3caac] hover:border-[#8d9479]'
           }`}
@@ -178,22 +475,27 @@ export default function SearchPage() {
           All
         </button>
 
-        {/* Date Range Chip (Second Position) */}
+        {/* 2. Date Range Chip */}
         <div className="flex-shrink-0">
-          {fromDate || toDate ? (
+          {appliedFromDate || appliedToDate ? (
             <div 
               onClick={() => setIsRangePickerOpen(true)}
               className="whitespace-nowrap px-4 py-2 rounded-full bg-[#b8f600] border border-[#a1d800] text-[#506e00] font-[family-name:var(--font-geist-sans)] text-[12px] leading-[16px] tracking-[0.05em] font-semibold uppercase flex items-center gap-2 cursor-pointer hover:bg-[#a5df00] transition-colors"
             >
               <span className="animate-fade-in">
-                {formatDateRangeForChip(fromDate, toDate)}
+                {formatDateRangeForChip(appliedFromDate, appliedToDate)}
               </span>
               <button
                 type="button"
                 onClick={(e) => {
                   e.stopPropagation();
-                  setFromDate('');
-                  setToDate('');
+                  setAppliedFromDate('');
+                  setAppliedToDate('');
+                  setAppliedPreset('');
+                  
+                  setDraftFromDate('');
+                  setDraftToDate('');
+                  setDraftPreset('');
                 }}
                 className="flex items-center justify-center w-4 h-4 rounded-full text-[#506e00]/60 hover:bg-[#506e00]/15 hover:text-[#506e00] font-bold transition-colors text-[14px] cursor-pointer"
               >
@@ -211,24 +513,155 @@ export default function SearchPage() {
           )}
         </div>
 
-        {/* Other Type Chips (Need, Want, Income) */}
-        {['Need', 'Want', 'Income'].map((type) => {
-          const isSelected = selectedType === type;
-          return (
-            <button 
-              key={type}
-              type="button"
-              onClick={() => setSelectedType(type)}
-              className={`whitespace-nowrap px-4 py-2 rounded-full border font-[family-name:var(--font-geist-sans)] text-[12px] leading-[16px] tracking-[0.05em] font-semibold uppercase transition-colors cursor-pointer ${
-                isSelected 
-                  ? 'border-[#a1d800] bg-[#b8f600] text-[#506e00]' 
-                  : 'border-[#2C2C2E] bg-[#1e2020] text-[#c3caac] hover:border-[#8d9479]'
-              }`}
+        {/* 3. PhonePe Chip */}
+        <div className="flex-shrink-0">
+          {appliedUpiApps.includes('PhonePe') ? (
+            <div 
+              onClick={togglePhonePeFilter}
+              className="whitespace-nowrap px-4 py-2 rounded-full bg-[#b8f600] border border-[#a1d800] text-[#506e00] font-[family-name:var(--font-geist-sans)] text-[12px] leading-[16px] tracking-[0.05em] font-semibold uppercase flex items-center gap-2 cursor-pointer hover:bg-[#a5df00] transition-colors"
             >
-              {type}
+              <span>PhonePe</span>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  removeAppliedUpiApp('PhonePe');
+                }}
+                className="flex items-center justify-center w-4 h-4 rounded-full text-[#506e00]/60 hover:bg-[#506e00]/15 hover:text-[#506e00] font-bold transition-colors text-[14px] cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={togglePhonePeFilter}
+              className="whitespace-nowrap px-4 py-2 rounded-full border border-[#2C2C2E] bg-[#1e2020] text-[#c3caac] hover:border-[#8d9479] font-[family-name:var(--font-geist-sans)] text-[12px] leading-[16px] tracking-[0.05em] font-semibold uppercase transition-colors flex items-center gap-1.5 cursor-pointer"
+            >
+              <span>PhonePe</span>
             </button>
-          );
-        })}
+          )}
+        </div>
+
+        {/* 4. Paytm Chip */}
+        <div className="flex-shrink-0">
+          {appliedUpiApps.includes('Paytm') ? (
+            <div 
+              onClick={togglePaytmFilter}
+              className="whitespace-nowrap px-4 py-2 rounded-full bg-[#b8f600] border border-[#a1d800] text-[#506e00] font-[family-name:var(--font-geist-sans)] text-[12px] leading-[16px] tracking-[0.05em] font-semibold uppercase flex items-center gap-2 cursor-pointer hover:bg-[#a5df00] transition-colors"
+            >
+              <span>Paytm</span>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  removeAppliedUpiApp('Paytm');
+                }}
+                className="flex items-center justify-center w-4 h-4 rounded-full text-[#506e00]/60 hover:bg-[#506e00]/15 hover:text-[#506e00] font-bold transition-colors text-[14px] cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={togglePaytmFilter}
+              className="whitespace-nowrap px-4 py-2 rounded-full border border-[#2C2C2E] bg-[#1e2020] text-[#c3caac] hover:border-[#8d9479] font-[family-name:var(--font-geist-sans)] text-[12px] leading-[16px] tracking-[0.05em] font-semibold uppercase transition-colors flex items-center gap-1.5 cursor-pointer"
+            >
+              <span>Paytm</span>
+            </button>
+          )}
+        </div>
+
+        {/* 5. Dynamic Active Filter Chips */}
+        {/* Transaction Types */}
+        {appliedTypes.map(type => (
+          <div 
+            key={`chip-type-${type}`}
+            className="flex-shrink-0 whitespace-nowrap px-4 py-2 rounded-full bg-[#b8f600] border border-[#a1d800] text-[#506e00] font-[family-name:var(--font-geist-sans)] text-[12px] leading-[16px] tracking-[0.05em] font-semibold uppercase flex items-center gap-2"
+          >
+            <span>{type}</span>
+            <button
+              type="button"
+              onClick={() => removeAppliedType(type)}
+              className="flex items-center justify-center w-4 h-4 rounded-full text-[#506e00]/60 hover:bg-[#506e00]/15 hover:text-[#506e00] font-bold transition-colors text-[14px] cursor-pointer"
+            >
+              ✕
+            </button>
+          </div>
+        ))}
+
+        {/* Categories */}
+        {appliedCategories.map(cat => (
+          <div 
+            key={`chip-cat-${cat}`}
+            className="flex-shrink-0 whitespace-nowrap px-4 py-2 rounded-full bg-[#b8f600] border border-[#a1d800] text-[#506e00] font-[family-name:var(--font-geist-sans)] text-[12px] leading-[16px] tracking-[0.05em] font-semibold uppercase flex items-center gap-2"
+          >
+            <span>{cat}</span>
+            <button
+              type="button"
+              onClick={() => removeAppliedCategory(cat)}
+              className="flex items-center justify-center w-4 h-4 rounded-full text-[#506e00]/60 hover:bg-[#506e00]/15 hover:text-[#506e00] font-bold transition-colors text-[14px] cursor-pointer"
+            >
+              ✕
+            </button>
+          </div>
+        ))}
+
+        {/* Payment Modes */}
+        {appliedPaymentModes.filter(mode => mode !== 'UPI' || appliedUpiApps.length === 0).map(mode => (
+          <div 
+            key={`chip-mode-${mode}`}
+            className="flex-shrink-0 whitespace-nowrap px-4 py-2 rounded-full bg-[#b8f600] border border-[#a1d800] text-[#506e00] font-[family-name:var(--font-geist-sans)] text-[12px] leading-[16px] tracking-[0.05em] font-semibold uppercase flex items-center gap-2"
+          >
+            <span>{mode}</span>
+            <button
+              type="button"
+              onClick={() => removeAppliedPaymentMode(mode)}
+              className="flex items-center justify-center w-4 h-4 rounded-full text-[#506e00]/60 hover:bg-[#506e00]/15 hover:text-[#506e00] font-bold transition-colors text-[14px] cursor-pointer"
+            >
+              ✕
+            </button>
+          </div>
+        ))}
+
+        {/* UPI Apps (except PhonePe and Paytm which have static chips) */}
+        {appliedUpiApps.filter(app => app !== 'PhonePe' && app !== 'Paytm').map(app => (
+          <div 
+            key={`chip-app-${app}`}
+            className="flex-shrink-0 whitespace-nowrap px-4 py-2 rounded-full bg-[#b8f600] border border-[#a1d800] text-[#506e00] font-[family-name:var(--font-geist-sans)] text-[12px] leading-[16px] tracking-[0.05em] font-semibold uppercase flex items-center gap-2"
+          >
+            <span>{app}</span>
+            <button
+              type="button"
+              onClick={() => removeAppliedUpiApp(app)}
+              className="flex items-center justify-center w-4 h-4 rounded-full text-[#506e00]/60 hover:bg-[#506e00]/15 hover:text-[#506e00] font-bold transition-colors text-[14px] cursor-pointer"
+            >
+              ✕
+            </button>
+          </div>
+        ))}
+
+        {/* Amount Range */}
+        {(appliedMinAmount || appliedMaxAmount) && (
+          <div className="flex-shrink-0 whitespace-nowrap px-4 py-2 rounded-full bg-[#b8f600] border border-[#a1d800] text-[#506e00] font-[family-name:var(--font-geist-sans)] text-[12px] leading-[16px] tracking-[0.05em] font-semibold uppercase flex items-center gap-2">
+            <span>
+              {appliedMinAmount && appliedMaxAmount 
+                ? `₹${appliedMinAmount} - ₹${appliedMaxAmount}`
+                : appliedMinAmount 
+                  ? `₹${appliedMinAmount}+`
+                  : `≤ ₹${appliedMaxAmount}`
+              }
+            </span>
+            <button
+              type="button"
+              onClick={removeAppliedAmountRange}
+              className="flex items-center justify-center w-4 h-4 rounded-full text-[#506e00]/60 hover:bg-[#506e00]/15 hover:text-[#506e00] font-bold transition-colors text-[14px] cursor-pointer"
+            >
+              ✕
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Live Results Section */}
@@ -240,6 +673,7 @@ export default function SearchPage() {
           <div className="flex items-center gap-1.5">
             <span className="font-[family-name:var(--font-geist-sans)] text-[12px] leading-[16px] tracking-[0.05em] font-semibold text-[#8d9479] uppercase">
               {loading ? '...' : `${filteredTransactions.length} Found`}
+              {activeFilterCount > 0 && <span className="text-[#a1d800] font-bold"> · Filtered</span>}
             </span>
           </div>
         </div>
@@ -268,20 +702,16 @@ export default function SearchPage() {
             <p className="font-[family-name:var(--font-inter)] text-[14px] text-[#474646] mb-4">
               {searchTerm 
                 ? "No matches found. Try a different search term." 
-                : isFilterActive 
+                : activeFilterCount > 0 
                   ? "No results matching these filters."
                   : "Searching across your history, notes, and categories."}
             </p>
-            {isFilterActive && (
+            {activeFilterCount > 0 && (
               <button
-                onClick={() => {
-                  setSelectedType('All');
-                  setFromDate('');
-                  setToDate('');
-                }}
+                onClick={handleClearAllFilters}
                 className="bg-[#2a2d2d] hover:bg-[#333535] text-[#ffffff] font-bold text-[12px] px-4 py-2 rounded-xl transition-colors font-[family-name:var(--font-geist-sans)] uppercase tracking-wider cursor-pointer"
               >
-                Clear Filters
+                Clear All Filters
               </button>
             )}
           </div>
@@ -378,18 +808,273 @@ export default function SearchPage() {
         isOpen={isRangePickerOpen}
         onClose={() => setIsRangePickerOpen(false)}
         onConfirm={(from, to) => {
-          setFromDate(from);
-          setToDate(to);
+          setAppliedFromDate(from);
+          setAppliedToDate(to);
+          setAppliedPreset('Date Range');
+          
+          setDraftFromDate(from);
+          setDraftToDate(to);
+          setDraftPreset('Date Range');
           setIsRangePickerOpen(false);
         }}
         onCancel={() => {
-          setFromDate('');
-          setToDate('');
+          setAppliedFromDate('');
+          setAppliedToDate('');
+          setAppliedPreset('');
+          
+          setDraftFromDate('');
+          setDraftToDate('');
+          setDraftPreset('');
           setIsRangePickerOpen(false);
         }}
-        initialFromDate={fromDate}
-        initialToDate={toDate}
+        initialFromDate={draftFromDate || appliedFromDate}
+        initialToDate={draftToDate || appliedToDate}
       />
+
+      {/* Filter Drawer Overlay */}
+      {isDrawerOpen && (
+        <div 
+          className="fixed inset-0 bg-black/60 z-[60] transition-opacity animate-fade-in backdrop-blur-sm"
+          onClick={() => setIsDrawerOpen(false)}
+        ></div>
+      )}
+
+      {/* Slide-up Filter Drawer */}
+      {isDrawerOpen && (
+        <div className="fixed bottom-0 left-0 right-0 z-[70] flex flex-col bg-[#121414] rounded-t-[24px] border-t border-[#434933] max-h-[85vh] overflow-hidden animate-slide-up max-w-[500px] mx-auto shadow-[0_-8px_30px_rgb(0,0,0,0.5)]">
+          {/* Drag Handle */}
+          <div className="w-full flex justify-center py-3 shrink-0">
+            <div className="w-12 h-1.5 bg-[#333535] rounded-full"></div>
+          </div>
+
+          {/* Drawer Header */}
+          <div className="px-[20px] pb-4 border-b border-[#333535] shrink-0">
+            <div className="flex items-center justify-between">
+              <h2 className="font-bold text-[24px] text-[#ffffff] font-[family-name:var(--font-geist-sans)] tracking-tight">
+                Filters
+              </h2>
+              <button 
+                type="button"
+                onClick={handleResetAll}
+                className="text-[13px] leading-[16px] tracking-tight font-bold text-[#a1d800] font-[family-name:var(--font-geist-sans)] hover:underline cursor-pointer"
+              >
+                Reset All
+              </button>
+            </div>
+          </div>
+
+          {/* Drawer Scrollable Content */}
+          <div className="flex-1 overflow-y-auto px-[20px] pt-6 pb-[100px] space-y-6 custom-scrollbar [&::-webkit-scrollbar]:hidden">
+            
+            {/* 1. Date Range Section */}
+            <div className="space-y-2">
+              <label className="text-[12px] leading-[16px] tracking-[0.05em] font-semibold text-[#c3caac] uppercase font-[family-name:var(--font-geist-sans)]">
+                Date Range
+              </label>
+              <div className="flex gap-2 overflow-x-auto pb-1 custom-scrollbar [&::-webkit-scrollbar]:hidden">
+                {['This Month', 'Last Month', 'Last 3 Months', 'Date Range'].map(preset => {
+                  const isSelected = draftPreset === preset;
+                  return (
+                    <button
+                      key={preset}
+                      type="button"
+                      onClick={() => handlePresetClick(preset)}
+                      className={`whitespace-nowrap px-4 py-2 rounded-full border font-[family-name:var(--font-geist-sans)] text-[12px] leading-[16px] tracking-[0.05em] font-semibold uppercase transition-colors cursor-pointer ${
+                        isSelected 
+                          ? 'border-[#a1d800] bg-[#b8f600] text-[#506e00]' 
+                          : 'border-[#2C2C2E] bg-[#1e2020] text-[#c3caac] hover:border-[#8d9479]'
+                      }`}
+                    >
+                      {preset}
+                    </button>
+                  );
+                })}
+              </div>
+              {draftFromDate && draftToDate && (
+                <p className="text-[12px] text-[#a1d800] font-semibold font-[family-name:var(--font-inter)] mt-1">
+                  Selected: {formatLocalDate(draftFromDate)} - {formatLocalDate(draftToDate)}
+                </p>
+              )}
+            </div>
+
+            {/* 2. Transaction Type Section */}
+            <div className="space-y-2">
+              <label className="text-[12px] leading-[16px] tracking-[0.05em] font-semibold text-[#c3caac] uppercase font-[family-name:var(--font-geist-sans)]">
+                Transaction Type
+              </label>
+              <div className="flex flex-wrap gap-2">
+                {TRANSACTION_TYPES.map(type => {
+                  const isSelected = draftTypes.includes(type);
+                  return (
+                    <button
+                      key={type}
+                      type="button"
+                      onClick={() => toggleDraftType(type)}
+                      className={`px-4 py-2 rounded-full border font-[family-name:var(--font-geist-sans)] text-[12px] leading-[16px] tracking-[0.05em] font-semibold uppercase transition-colors cursor-pointer ${
+                        isSelected 
+                          ? 'border-[#a1d800] bg-[#b8f600] text-[#506e00]' 
+                          : 'border-[#2C2C2E] bg-[#1e2020] text-[#c3caac] hover:border-[#8d9479]'
+                      }`}
+                    >
+                      {type}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* 3. Category Section */}
+            <div className="space-y-2">
+              <label className="text-[12px] leading-[16px] tracking-[0.05em] font-semibold text-[#c3caac] uppercase font-[family-name:var(--font-geist-sans)]">
+                Category
+              </label>
+              <div className="flex flex-wrap gap-2">
+                {CATEGORIES.map(cat => {
+                  const isSelected = draftCategories.includes(cat);
+                  return (
+                    <button
+                      key={cat}
+                      type="button"
+                      onClick={() => toggleDraftCategory(cat)}
+                      className={`px-4 py-2 rounded-full border font-[family-name:var(--font-geist-sans)] text-[12px] leading-[16px] tracking-[0.05em] font-semibold uppercase transition-colors cursor-pointer ${
+                        isSelected 
+                          ? 'border-[#a1d800] bg-[#b8f600] text-[#506e00]' 
+                          : 'border-[#2C2C2E] bg-[#1e2020] text-[#c3caac] hover:border-[#8d9479]'
+                      }`}
+                    >
+                      {cat}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* 4. Payment Mode & UPI App Section */}
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <label className="text-[12px] leading-[16px] tracking-[0.05em] font-semibold text-[#c3caac] uppercase font-[family-name:var(--font-geist-sans)]">
+                  Payment Mode
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  {PAYMENT_MODES.map(mode => {
+                    const isSelected = draftPaymentModes.includes(mode);
+                    return (
+                      <button
+                        key={mode}
+                        type="button"
+                        onClick={() => toggleDraftPaymentMode(mode)}
+                        className={`px-4 py-2 rounded-full border font-[family-name:var(--font-geist-sans)] text-[12px] leading-[16px] tracking-[0.05em] font-semibold uppercase transition-colors cursor-pointer ${
+                          isSelected 
+                            ? 'border-[#a1d800] bg-[#b8f600] text-[#506e00]' 
+                            : 'border-[#2C2C2E] bg-[#1e2020] text-[#c3caac] hover:border-[#8d9479]'
+                        }`}
+                      >
+                        {mode}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* UPI Sub-Apps Row */}
+              {draftPaymentModes.includes('UPI') && (
+                <div className="bg-[#1a1c1c]/50 p-4 rounded-xl border border-[#434933]/50 space-y-3 animate-fade-in">
+                  <div className="text-[11px] font-semibold text-[#8d9479] tracking-wider uppercase font-[family-name:var(--font-geist-sans)] block">
+                    Select UPI Apps
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {UPI_APPS.map(app => {
+                      const isSelected = draftUpiApps.includes(app);
+                      return (
+                        <button
+                          key={app}
+                          type="button"
+                          onClick={() => toggleDraftUpiApp(app)}
+                          className={`px-3 py-1.5 rounded-lg border font-[family-name:var(--font-geist-sans)] text-[11px] leading-[14px] tracking-[0.05em] font-bold uppercase transition-colors cursor-pointer ${
+                            isSelected
+                              ? 'border-[#a1d800] bg-[#b8f600]/20 text-[#a1d800]'
+                              : 'border-[#333535] bg-[#121414] text-[#8d9479] hover:border-[#8d9479]'
+                          }`}
+                        >
+                          {app}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* 5. Amount Range Section */}
+            <div className="space-y-2">
+              <label className="text-[12px] leading-[16px] tracking-[0.05em] font-semibold text-[#c3caac] uppercase font-[family-name:var(--font-geist-sans)]">
+                Amount Range
+              </label>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="relative">
+                  <input
+                    type="number"
+                    min="0"
+                    value={draftMinAmount}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      if (val === '' || (Number(val) >= 0 && !val.includes('-'))) {
+                        setDraftMinAmount(val);
+                      }
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+                        e.preventDefault();
+                      }
+                    }}
+                    onWheel={(e) => e.currentTarget.blur()}
+                    className="w-full bg-[#1a1c1c] border border-[#434933] focus:border-[#a1d800] focus:ring-0 text-[#ffffff] font-[family-name:var(--font-inter)] text-[14px] rounded-xl pl-8 pr-4 py-3 placeholder:text-[#474646] outline-none [-moz-appearance:_textfield] [&::-webkit-outer-spin-button]:m-0 [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:m-0 [&::-webkit-inner-spin-button]:appearance-none"
+                    placeholder="Min"
+                  />
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#8d9479] font-medium text-[14px]">
+                    ₹
+                  </span>
+                </div>
+                <div className="relative">
+                  <input
+                    type="number"
+                    min="0"
+                    value={draftMaxAmount}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      if (val === '' || (Number(val) >= 0 && !val.includes('-'))) {
+                        setDraftMaxAmount(val);
+                      }
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+                        e.preventDefault();
+                      }
+                    }}
+                    onWheel={(e) => e.currentTarget.blur()}
+                    className="w-full bg-[#1a1c1c] border border-[#434933] focus:border-[#a1d800] focus:ring-0 text-[#ffffff] font-[family-name:var(--font-inter)] text-[14px] rounded-xl pl-8 pr-4 py-3 placeholder:text-[#474646] outline-none [-moz-appearance:_textfield] [&::-webkit-outer-spin-button]:m-0 [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:m-0 [&::-webkit-inner-spin-button]:appearance-none"
+                    placeholder="Max"
+                  />
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#8d9479] font-medium text-[14px]">
+                    ₹
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Drawer Footer Actions */}
+          <div className="absolute bottom-0 left-0 right-0 bg-[#121414] p-[20px] pt-4 border-t border-[#333535] shrink-0">
+            <button 
+              type="button"
+              onClick={handleApplyFilters}
+              className="w-full bg-[#a1d800] hover:bg-[#b8f600] text-[#141f00] font-bold text-[20px] leading-[28px] tracking-tight py-[14px] rounded-full shadow-[0_4px_20px_rgb(161,216,0,0.2)] transition-all active:scale-95 flex items-center justify-center font-[family-name:var(--font-geist-sans)] cursor-pointer"
+            >
+              Apply Filters
+            </button>
+          </div>
+        </div>
+      )}
     </main>
   );
 }

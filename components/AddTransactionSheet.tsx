@@ -209,8 +209,20 @@ export default function AddTransactionSheet({
               <span className="font-bold text-[32px] text-[#a1d800] font-[family-name:var(--font-geist-sans)]">₹</span>
               <input 
                 type="number"
+                min="0"
                 value={amount}
-                onChange={(e) => setAmount(e.target.value)}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  if (val === '' || (Number(val) >= 0 && !val.includes('-'))) {
+                    setAmount(val);
+                  }
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+                    e.preventDefault();
+                  }
+                }}
+                onWheel={(e) => e.currentTarget.blur()}
                 className="bg-transparent border-none focus:ring-0 w-full font-bold text-[40px] text-[#ffffff] placeholder:text-[#333535] outline-none font-[family-name:var(--font-geist-sans)] [-moz-appearance:_textfield] [&::-webkit-outer-spin-button]:m-0 [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:m-0 [&::-webkit-inner-spin-button]:appearance-none"
                 placeholder="0.00"
                 autoFocus
