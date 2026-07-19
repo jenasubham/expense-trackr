@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono, Inter } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/lib/context/AuthContext";
+import PWARegister from "@/components/PWARegister";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -39,6 +40,7 @@ export default function RootLayout({
       </head>
       <body className="min-h-full flex flex-col bg-[#0D0D0D] text-[#e2e2e2]">
         <AuthProvider>
+          <PWARegister />
           {children}
         </AuthProvider>
       </body>

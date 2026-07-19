@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 import { signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, sendPasswordResetEmail } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 import { useAuth } from '@/lib/context/AuthContext';
@@ -24,14 +23,13 @@ export default function LoginPage() {
   const [resetLoading, setResetLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
-  const router = useRouter();
   const { user, loading: authLoading } = useAuth();
 
   useEffect(() => {
     if (user && !authLoading) {
-      router.push('/');
+      window.location.href = '/';
     }
-  }, [user, authLoading, router]);
+  }, [user, authLoading]);
 
   const validateEmail = (val: string) => {
     if (!val) {
@@ -70,8 +68,8 @@ export default function LoginPage() {
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       document.cookie = `auth_token=${userCredential.user.uid}; path=/; max-age=${60 * 60 * 24 * 30}`;
-      router.push('/');
-    } catch (err: any) {
+      window.location.href = '/';
+    } catch {
       setError('Invalid email or password.');
     } finally {
       setLoading(false);
@@ -85,8 +83,8 @@ export default function LoginPage() {
       const provider = new GoogleAuthProvider();
       const userCredential = await signInWithPopup(auth, provider);
       document.cookie = `auth_token=${userCredential.user.uid}; path=/; max-age=${60 * 60 * 24 * 30}`;
-      router.push('/');
-    } catch (err: any) {
+      window.location.href = '/';
+    } catch (err) {
       console.error(err);
       setError('Google sign in failed. Please try again.');
     } finally {
@@ -113,11 +111,12 @@ export default function LoginPage() {
     try {
       await sendPasswordResetEmail(auth, email);
       setResetSuccess(true);
-    } catch (err: any) {
+    } catch (err) {
       console.error(err);
-      if (err.code === 'auth/user-not-found') {
+      const errorCode = (err as { code?: string }).code;
+      if (errorCode === 'auth/user-not-found') {
         setResetError('Email address not found.');
-      } else if (err.code === 'auth/invalid-email') {
+      } else if (errorCode === 'auth/invalid-email') {
         setResetEmailError('Please enter a valid email.');
       } else {
         setResetError('Failed to send reset link. Please try again.');
@@ -304,7 +303,7 @@ export default function LoginPage() {
                 Reset Password
               </h2>
               <p className="text-[13px] text-[#c3caac] font-[family-name:var(--font-inter)] leading-relaxed">
-                Enter your email and we'll send you a reset link
+                Enter your email and we&apos;ll send you a reset link
               </p>
             </div>
 
