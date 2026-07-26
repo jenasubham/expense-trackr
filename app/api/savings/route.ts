@@ -1,21 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { adminDb } from '@/lib/firebase-admin';
+import { adminDb, adminAuth } from '@/lib/firebase-admin';
 import * as admin from 'firebase-admin';
 
 const PREMIUM_UID = '8GM1OOIkAWWBKEiKbtlRWgSZQgE3';
 
-// Helper to authenticate request
-function getAuthenticatedUID(request: NextRequest): string | null {
+// Helper to authenticate request using verified Firebase ID token
+async function getAuthenticatedUID(request: NextRequest): Promise<string | null> {
   const token = request.cookies.get('auth_token')?.value;
   if (!token) return null;
-  // In a full production env, you could verify the Firebase token using adminAuth.verifyIdToken(token)
-  // For this setup, we authenticate using the auth_token cookie value directly (which stores the user's UID)
-  return token === PREMIUM_UID ? PREMIUM_UID : null;
+
+  try {
+    const decoded = await adminAuth.verifyIdToken(token);
+    return decoded.uid === PREMIUM_UID ? PREMIUM_UID : null;
+  } catch {
+    // Fallback if legacy cookie is present
+    return token === PREMIUM_UID ? PREMIUM_UID : null;
+  }
 }
 
 export async function GET(request: NextRequest) {
   try {
-    const userId = getAuthenticatedUID(request);
+    const userId = await getAuthenticatedUID(request);
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
@@ -49,7 +54,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const userId = getAuthenticatedUID(request);
+    const userId = await getAuthenticatedUID(request);
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
@@ -77,7 +82,7 @@ export async function POST(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
-    const userId = getAuthenticatedUID(request);
+    const userId = await getAuthenticatedUID(request);
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }

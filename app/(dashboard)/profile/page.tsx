@@ -3,10 +3,24 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { updatePassword, signOut } from 'firebase/auth';
+import { updatePassword, signOut, sendEmailVerification } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 import { useAuth } from '@/lib/context/AuthContext';
 import { Eye, EyeOff } from 'lucide-react';
+
+const getFullName = (displayName?: string | null, email?: string | null) => {
+  let name = displayName;
+  if (!name && email) {
+    name = email.split('@')[0].replace(/[._-]/g, ' ');
+  }
+  if (!name) return 'User';
+  return name
+    .trim()
+    .split(' ')
+    .filter(Boolean)
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(' ');
+};
 
 export default function ProfilePage() {
   const { user } = useAuth();
@@ -18,12 +32,27 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [isSendingVerification, setIsSendingVerification] = useState(false);
   
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
   const showToast = (message: string, type: 'success' | 'error') => {
     setToast({ message, type });
     setTimeout(() => setToast(null), 3000);
+  };
+
+  const handleSendVerification = async () => {
+    if (!user) return;
+    setIsSendingVerification(true);
+    try {
+      await sendEmailVerification(user);
+      showToast('Verification link sent! Check your inbox.', 'success');
+    } catch (error) {
+      console.error(error);
+      showToast('Failed to send link. Please try again later.', 'error');
+    } finally {
+      setIsSendingVerification(false);
+    }
   };
 
   interface SavingsRecord {
@@ -181,10 +210,17 @@ export default function ProfilePage() {
     }
   };
 
+  const isDemoAccount = user?.email === 'guest@expensetracker.com';
+
   const handleChangePassword = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
-    
+
+    if (isDemoAccount) {
+      showToast('Password change is disabled for the demo account.', 'error');
+      return;
+    }
+
     if (newPassword.length < 6) {
       showToast('Password must be at least 6 characters', 'error');
       return;
@@ -246,18 +282,55 @@ export default function ProfilePage() {
       {/* Profile Info */}
       <div className="flex flex-col items-center mb-6">
         <div className="relative w-28 h-28 rounded-full bg-[#121414] border border-[#a1d800]/30 flex items-center justify-center mb-3 before:absolute before:inset-[-3px] before:rounded-full before:bg-gradient-to-b before:from-[#a1d800]/70 before:to-transparent before:-z-10 animate-glow-pulse">
-          <span className="text-[48px] font-bold text-[#a1d800] font-[family-name:var(--font-geist-sans)]">S</span>
+          <span className="text-[48px] font-bold text-[#a1d800] font-[family-name:var(--font-geist-sans)]">
+            {(user?.displayName || user?.email || 'U').charAt(0).toUpperCase()}
+          </span>
         </div>
         <h2 className="text-[24px] font-bold text-[#ffffff] font-[family-name:var(--font-geist-sans)] tracking-tight">
-          Subham
+          {getFullName(user?.displayName, user?.email)}
         </h2>
         <p className="text-[12px] font-bold tracking-widest text-[#a1d800] mt-1 font-[family-name:var(--font-geist-sans)]">
-          {user?.email || 'subham@example.com'}
+          {user?.email || ''}
         </p>
       </div>
 
       {/* Action Cards */}
       <div className="flex flex-col gap-4 flex-1">
+        
+        {/* Email Unverified Warning Card */}
+        {user && !user.emailVerified && user.email && (
+          <div className="relative bg-gradient-to-r from-[#241c12] via-[#1a1c1c] to-[#181919] border border-[#ffb74d]/30 rounded-xl overflow-hidden shadow-[0_4px_20px_rgba(255,183,77,0.06)] animate-fade-in">
+            {/* Amber left accent glow bar */}
+            <div className="absolute left-0 top-0 bottom-0 w-1 bg-[#ffb74d] shadow-[0_0_10px_rgba(255,183,77,0.8)]" />
+
+            <div className="flex items-center justify-between p-4 pl-5 gap-3">
+              <div className="flex items-center gap-3.5 min-w-0">
+                {/* Icon Badge */}
+                <div className="w-10 h-10 min-w-10 min-h-10 rounded-xl bg-[#ffb74d]/10 border border-[#ffb74d]/30 flex items-center justify-center text-[#ffb74d] shrink-0 shadow-[0_0_12px_rgba(255,183,77,0.15)]">
+                  <span className="material-symbols-outlined text-[20px]">mark_email_unread</span>
+                </div>
+
+                <div className="flex flex-col text-left min-w-0">
+                  <span className="font-bold text-[14px] text-[#ffffff] font-[family-name:var(--font-geist-sans)] tracking-tight truncate">
+                    Unverified Account
+                  </span>
+                  <span className="text-[11px] text-[#a0a595] font-medium font-[family-name:var(--font-inter)] truncate">
+                    Verify inbox to secure your profile
+                  </span>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={handleSendVerification}
+                disabled={isSendingVerification}
+                className="shrink-0 bg-[#ffb74d]/15 hover:bg-[#ffb74d]/25 text-[#ffb74d] border border-[#ffb74d]/40 rounded-lg px-3 py-1.5 text-[11px] font-bold tracking-wide transition-all active:scale-[0.97] cursor-pointer disabled:opacity-50 font-[family-name:var(--font-geist-sans)] uppercase"
+              >
+                {isSendingVerification ? 'Sending...' : 'Verify'}
+              </button>
+            </div>
+          </div>
+        )}
         
         {/* Savings Vault Card (Premium User Only) */}
         {isPremiumUser && (

@@ -6,6 +6,7 @@ import { collection, query, where, orderBy, limit, getDocs } from 'firebase/fire
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/lib/context/AuthContext';
 import { Transaction } from '@/lib/types';
+import { ensureDemoDataSeeded } from '@/lib/demoSeeder';
 import AddTransactionSheet from '@/components/AddTransactionSheet';
 import TransactionDetailSheet from '@/components/TransactionDetailSheet';
 
@@ -33,6 +34,16 @@ const formatLocalDate = (dateVal: string | Date) => {
   });
 };
 
+const getFirstName = (displayName?: string | null, email?: string | null) => {
+  let name = displayName;
+  if (!name && email) {
+    name = email.split('@')[0].replace(/[._-]/g, ' ');
+  }
+  if (!name) return 'User';
+  const firstWord = name.trim().split(' ')[0];
+  return firstWord.charAt(0).toUpperCase() + firstWord.slice(1).toLowerCase();
+};
+
 export default function Dashboard() {
   const { user } = useAuth();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -55,11 +66,21 @@ export default function Dashboard() {
           collection(db, 'transactions'),
           where('userId', '==', user.uid)
         );
-        const snapshot = await getDocs(q);
-        const allTxs: Transaction[] = [];
+        let snapshot = await getDocs(q);
+        let allTxs: Transaction[] = [];
         snapshot.forEach((doc) => {
           allTxs.push({ id: doc.id, ...doc.data() } as Transaction);
         });
+
+        // Auto-seed demo data if guest account has 0 transactions
+        if (allTxs.length === 0 && user.email === 'guest@expensetracker.com') {
+          await ensureDemoDataSeeded(user.uid);
+          snapshot = await getDocs(q);
+          allTxs = [];
+          snapshot.forEach((doc) => {
+            allTxs.push({ id: doc.id, ...doc.data() } as Transaction);
+          });
+        }
 
         // Normalize dates and sort by date descending
         allTxs.sort((a, b) => {
@@ -124,7 +145,7 @@ export default function Dashboard() {
             <span className="material-symbols-outlined text-[#a1d800] text-2xl">person</span>
           </Link>
           <h1 className="font-semibold text-[24px] text-[#ffffff] font-[family-name:var(--font-geist-sans)] tracking-tight">
-            Hello, Subham
+            Hello, {getFirstName(user?.displayName, user?.email)}
           </h1>
         </div>
         <Link href="/search" className="w-12 h-12 flex items-center justify-center rounded-full bg-[#1A1A1A] border border-[#2C2C2E] hover:border-[#a1d800] transition-colors cursor-pointer">

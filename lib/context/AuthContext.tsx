@@ -18,12 +18,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       setUser(currentUser);
       setLoading(false);
       
-      // Ensure the cookie is cleared on logout
-      if (!currentUser) {
+      if (currentUser) {
+        try {
+          const idToken = await currentUser.getIdToken();
+          document.cookie = `auth_token=${idToken}; path=/; max-age=${60 * 60 * 24 * 30}`;
+        } catch (err) {
+          console.error("Error setting auth cookie:", err);
+        }
+      } else {
         document.cookie = 'auth_token=; path=/; max-age=0';
       }
     });

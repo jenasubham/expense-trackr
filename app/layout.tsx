@@ -20,9 +20,20 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Expense Tracker",
-  description: "Personal Expense Tracker",
+  title: "Expense Tracker | Own Your Money",
+  description: "Track your daily spending, monitor category budgets, and build your savings with a sleek dark-themed expense tracker.",
   manifest: "/manifest.json",
+  openGraph: {
+    title: "Expense Tracker | Own Your Money",
+    description: "Track your daily spending, monitor category budgets, and build your savings with a sleek dark-themed expense tracker.",
+    type: "website",
+    siteName: "Expense Tracker",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Expense Tracker | Own Your Money",
+    description: "Track your daily spending, monitor category budgets, and build your savings effortlessly.",
+  },
 };
 
 export default function RootLayout({
